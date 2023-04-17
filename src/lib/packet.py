@@ -1,5 +1,5 @@
 from typing import Self
-from constants import OPCODES, ENDIAN
+from constants import OPCODES, ENDIAN, END
 from abc import ABC, abstractmethod
 
 """
@@ -27,7 +27,7 @@ class Packet(ABC):
         opcode = int.from_bytes(stream[:2], ENDIAN)
         stream = stream[2:]
 
-        class_for_opcode(opcode).decode(stream)
+        return class_for_opcode(opcode).decode(stream)
 
 
 
@@ -52,13 +52,50 @@ def class_for_opcode(opcode: int) -> type:
             raise ValueError("invalid opcode")
 
 
+"""
+Lee un campo hasta que llega al byte de terminacion
+
+Devuelve el campo y su longitud
+"""
+def read_field(stream: bytes) -> tuple[bytes, int]:
+    for i in range(0, len(stream)):
+        if stream[i] == 0:
+            return stream[:i], i
+    
+    return stream, len(stream)
+
+
 class WriteRequestPacket(Packet):
-    def __init__(name) -> Self:
-        pass
+    def __init__(self, name) -> Self:
+        self.opcode: int = OPCODES.WRQ
+        self.name: str = name
+
+    @classmethod
+    def decode(cls, stream: bytes) -> Self:
+        name, _length = read_field(stream)
+        name = name.decode()
+        return cls(name)
+    
+    def encode(self) -> bytes:
+        return (self.opcode.to_bytes(2, ENDIAN) 
+                + self.name.encode() 
+                + END.to_bytes(1, ENDIAN))
 
 class ReadRequestPacket(Packet):
-    def __init__(name) -> Self:
-        pass
+    def __init__(self, name) -> Self:
+        self.opcode: int = OPCODES.RRQ
+        self.name: str = name
+
+    @classmethod
+    def decode(cls, stream: bytes) -> Self:
+        name, _length = read_field(stream)
+        name = name.decode()
+        return cls(name)
+    
+    def encode(self) -> bytes:
+        return (self.opcode.to_bytes(2, ENDIAN) 
+                + self.name.encode() 
+                + END.to_bytes(1, ENDIAN))
 
 class DataPacket(Packet):
     def __init__(self, block: int, data: bytes) -> Self:
