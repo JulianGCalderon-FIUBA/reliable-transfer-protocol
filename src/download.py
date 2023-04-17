@@ -38,7 +38,7 @@ def main(arguments):
     connection.send(request)
 
     with open(arguments.name, "w") as file:
-        for packet in connection.receive():    
+        for packet in connection.receive():  
             # EXPLOTA SI NO ES UN DATA PACKET !
             file.write(packet.data)
 
