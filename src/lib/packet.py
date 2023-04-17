@@ -23,7 +23,8 @@ class Packet(ABC):
     """
     Decodifica el paquete a partir de un stream de bytes, creando cada instancia particular
     """
-    def decode(stream: bytes) -> Self:
+    @classmethod
+    def decode(cls, stream: bytes) -> Self:
         opcode = int.from_bytes(stream[:2], ENDIAN)
         stream = stream[2:]
 
@@ -117,12 +118,33 @@ class DataPacket(Packet):
                 + self.data)
 
 class AckPacket(Packet):
-    def __init__(block_number) -> Self:
-        pass
+    def __init__(self, block_number: int) -> Self:
+        self.opcode: int = OPCODES.ACK
+        self.block: int = block_number
+    
+    @classmethod
+    def decode(cls, stream: bytes) -> Self:
+        block_number = int.from_bytes(stream, ENDIAN)
+
+        return cls(block_number)
+
+    def encode(self) -> bytes:
+        return (self.opcode.to_bytes(2, ENDIAN)
+                + self.block.to_bytes(2, ENDIAN))
 
 class ErrorPacket(Packet):
-    def __init__(error_name) -> Self:
-        pass
+    def __init__(self, error_code: int) -> Self:
+        self.opcode: int = OPCODES.ERROR
+        self.error_code: int = error_code
+
+    @classmethod
+    def decode(cls, stream: bytes) -> Self:
+        error_code = int.from_bytes(stream, ENDIAN)
+        return cls(error_code)
+
+    def encode(self) -> bytes:
+        return (self.opcode.to_bytes(2, ENDIAN)
+                + self.error_code.to_bytes(2, ENDIAN))
 
 class PacketBuilder():
     pass
