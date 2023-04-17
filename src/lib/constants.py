@@ -36,3 +36,5 @@ END = 0x0
 MIN_HOST_AMOUNT = 2
 LINK_LOSS = 10
 ENDIAN = 'big'
+
+BUFFSIZE = 600 #Esto habria que mirarlo mejor despues
