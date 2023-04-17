@@ -146,5 +146,3 @@ class ErrorPacket(Packet):
         return (self.opcode.to_bytes(2, ENDIAN)
                 + self.error_code.to_bytes(2, ENDIAN))
 
-class PacketBuilder():
-    pass
