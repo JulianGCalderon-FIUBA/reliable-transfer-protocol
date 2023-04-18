@@ -29,6 +29,14 @@ class Packet(ABC):
         stream = stream[2:]
 
         return class_for_opcode(opcode).decode(stream)
+    
+    """
+    Devuelve true si la respuesta es la esperada para el paquete.
+    Si no devuelve False
+    """
+    @abstractmethod
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        pass
 
 
 
@@ -81,6 +89,12 @@ class WriteRequestPacket(Packet):
         return (self.opcode.to_bytes(2, ENDIAN) 
                 + self.name.encode() 
                 + END.to_bytes(1, ENDIAN))
+    
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        if other.__class__ != DataPacket.__class__:
+            return False
+        
+        return other.block == 0
 
 class ReadRequestPacket(Packet):
     def __init__(self, name) -> Self:
@@ -97,6 +111,12 @@ class ReadRequestPacket(Packet):
         return (self.opcode.to_bytes(2, ENDIAN) 
                 + self.name.encode() 
                 + END.to_bytes(1, ENDIAN))
+    
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        if other.__class__ != DataPacket.__class__:
+            return False
+        
+        return other.block == 0
 
 class DataPacket(Packet):
     def __init__(self, block: int, data: bytes) -> Self:
@@ -116,6 +136,9 @@ class DataPacket(Packet):
         return (self.opcode.to_bytes(2, ENDIAN)
                 + self.block.to_bytes(2, ENDIAN) 
                 + self.data)
+    
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        return other.__class__ == AckPacket.__class__ and other.block == self.block
 
 class AckPacket(Packet):
     def __init__(self, block_number: int) -> Self:
@@ -131,6 +154,10 @@ class AckPacket(Packet):
     def encode(self) -> bytes:
         return (self.opcode.to_bytes(2, ENDIAN)
                 + self.block.to_bytes(2, ENDIAN))
+    
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        #Esto va a haber que checkearlo, por que el block se puede dar vuelta (volver a 1)
+        return other.__class__ == DataPacket.__class__ and other.block == self.block + 1
 
 class ErrorPacket(Packet):
     def __init__(self, error_code: int) -> Self:
@@ -145,4 +172,9 @@ class ErrorPacket(Packet):
     def encode(self) -> bytes:
         return (self.opcode.to_bytes(2, ENDIAN)
                 + self.error_code.to_bytes(2, ENDIAN))
+    
+    def is_expected_answer(self, other: 'Packet') -> bool:
+        #Devuelve False, no encontre que tenga un ACK, pero deberia
+        #La RFC marca que funciona como ACK para cualquier tipo de paquete.
+        return False
 

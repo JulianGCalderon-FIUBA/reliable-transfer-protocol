@@ -5,7 +5,7 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 from abc import ABC, abstractmethod
 from typing import Self
 from lib.constants import WILDCARD_ADDRESS, BUFFSIZE
-from packet import AckPacket, Packet, WriteRequestPacket
+from packet import AckPacket, Packet, WriteRequestPacket, DataPacket
 import socket
 
 class SocketNotBindedException(Exception):
@@ -21,10 +21,9 @@ class ConnectionRFTP(ABC):
     
     """
     Espera por una nueva conexion y devuelve otra
-    El socket devuelto deberia estar bindeado ? 
     """
     @abstractmethod
-    def listen(self) -> tuple[Self, 'Packet']:
+    def listen(self) -> tuple['Packet', Self]:
         pass
 
     """
@@ -38,14 +37,14 @@ class ConnectionRFTP(ABC):
     Envia los datos definidos en data a traves de la conexion
     """
     @abstractmethod
-    def send_to(self, data: 'Packet') -> None:
+    def send(self, data: 'Packet') -> None:
         pass
     
     """
-    Intenta recuperar un paquete de la conexion
+    Intenta recuperar un paquete de la conexion y la direccion de la cual lo recupero
     """
     @abstractmethod
-    def recieve_from(self) -> 'Packet': #como string de bytes
+    def recieve_from(self) -> tuple['Packet', tuple[str, int]]: #como string de bytes
         pass
 
 
@@ -62,22 +61,39 @@ class StopAndWaitConnection(ConnectionRFTP):
     def bind(self, address: tuple[str, int]) -> None:
         try:
             self.socket.bind(address)
+            self.binded_addr = address
         except Exception as e:
             print(e)
-        
-        self.binded_addr = address
+            
+    def is_binded(self) -> bool:
+        return self.binded_addr != None
 
-    def listen(self) -> tuple[Self, 'Packet']:
-        if not self.binded_addr:
+    def listen(self) -> tuple['Packet', Self]:
+        paquete, direccion = self.recieve_from()
+        
+        return paquete, Self(direccion[0], direccion[1])
+
+    def recieve_from(self) -> tuple['Packet', tuple[str, int]]:
+        if not self.is_binded():
             raise SocketNotBindedException()
         
         stream, direccion = self.socket.recvfrom(BUFFSIZE)
-        
-        return Self(direccion[0], direccion[1]), Packet.decode(stream)
+
+        return Packet.decode(stream), direccion
 
     def close(self) -> None:
         self.socket.close()
+        del self
 
+    def send(self, data: 'Packet') -> None:
+        if not self.is_binded():
+            raise SocketNotBindedException()
+        encoded_data = data.encode()
+        sent = 0
+        while sent < len(encoded_data):
+            sent += self.socket.sendto(encoded_data, (self.target_ip, self.target_port))
+            encoded_data = encoded_data[:sent]
+            
     def send_wrq(self, packet: 'WriteRequestPacket') -> None:
         # enviar Paquete
         packet_aux = packet.encode()
@@ -95,7 +111,7 @@ class StopAndWaitConnection(ConnectionRFTP):
             self.target_port = addr[1]
 
 
-    def send_data(self, packet: 'Packet') -> None:
+    def send_data(self, packet: 'DataPacket') -> None:
         # enviar Paquete
         packet_aux = packet.encode()
         self.socket.sendto(packet_aux, (self.target_ip, self.target_port))
