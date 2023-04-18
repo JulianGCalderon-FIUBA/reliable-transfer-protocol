@@ -9,18 +9,19 @@ class Topo ( Topo ) :
         # Initialize topology
         Topo.__init__ ( self )
         server = self.addHost("server")
-        for i in range(1, hosts+1):
-                next_client = self.addHost('host_'+str(i+1))
-                self.addLink ( server , next_client , cls = TCLink , loss = loss)
+        switch = net.addSwitch('s1')
 
+        self.addLink(server, switch, loss=LINK_LOSS)
+
+        for i in range(1, hosts+1):
+                host = self.addHost('host_'+str(i))
+                self.addLink ( server , switch, cls = TCLink , loss = LINK_LOSS)
 
 parser = argparse.ArgumentParser(
     prog="Topology",
     description="Amount of hosts for the server topology"
 )
 parser.add_argument("amount",default=MIN_HOST_AMOUNT, type=int, nargs=1)
-parser.add_argument("-l", "--loss", default=LINK_LOSS, type=int, nargs=1)
 hosts = parser.amount
-loss = parser.loss
-
+ 
 topos = {'customTopo': Topo(hosts) }
