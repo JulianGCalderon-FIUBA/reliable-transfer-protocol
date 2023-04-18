@@ -93,7 +93,9 @@ class StopAndWaitConnection(ConnectionRFTP):
         while sent < len(encoded_data):
             sent += self.socket.sendto(encoded_data, (self.target_ip, self.target_port))
             encoded_data = encoded_data[:sent]
-            
+        #Aca va un timeout y checkear que lo que te devuelven sea efectivamente el ACK del paquete
+        pass
+
     def send_wrq(self, packet: 'WriteRequestPacket') -> None:
         # enviar Paquete
         packet_aux = packet.encode()
