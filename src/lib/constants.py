@@ -4,6 +4,7 @@ LOCALHOST = "127.0.0.1"
 WILDCARD_ADDRESS = "0.0.0.0"
 
 OPCODES = types.SimpleNamespace()
+SOCK_CONSTS = types.SimpleNamespace()
 
 """
     |2 bytes |string   |1 byte |
@@ -37,4 +38,6 @@ MIN_HOST_AMOUNT = 2
 LINK_LOSS = 10
 ENDIAN = 'big'
 
-BUFFSIZE = 600 #Esto habria que mirarlo mejor despues
+SOCK_CONSTS.BUFFSIZE = 600 #Esto habria que mirarlo mejor despues
+SOCK_CONSTS.BASE_TIMEOUT = 1.0 #Un segundo de timeout de base
+SOCK_CONSTS.MAX_HANDSHAKE_RETRIES = 3 #Tratamos hasta 3 veces de rehacer una conexion
