@@ -24,12 +24,12 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     queue = Queue()
     received: Dict[Address, List[int]] = {}
     timers: Dict[Address, Dict[int, threading.Timer]] = {}
-    online: bool = True
+    buffered: Dict[Address, List[DataPacket]] = {}
+    expected_id: Dict[Address, int] = {}
 
     def __init__(self):
         super().__init__()
 
-        self.socket.settimeout(SOCKET_TIMEOUT)
         self.start_read_thread()
 
     def start_read_thread(self):
@@ -61,18 +61,13 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
             self.id = 0
 
     def read_thread(self):
-        while self.online:
-            try:
-                data, address = self.socket.recvfrom(BUFSIZE)
-            except socket.error:
-                continue
+        while True:
+            data, address = self.socket.recvfrom(BUFSIZE)
 
             # MANUAL PACKET LOSS
-            while random() < 0.5:
-                try:
-                    data, address = self.socket.recvfrom(BUFSIZE)
-                except socket.error:
-                    continue
+            while random() < 0.1:
+                data, address = self.socket.recvfrom(BUFSIZE)
+
             # MANUAL PACKET LOSS
 
             packet = Packet.decode(data)
@@ -91,9 +86,25 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     def on_data_packet(self, packet, address):
         self.socket.sendto(AckPacket(packet.id).encode(), address)
 
-        if packet.id not in self.get_received(address):
-            self.add_received(address, packet.id)
+        if packet.id in self.get_received(address):
+            return
+
+        self.add_received(address, packet.id)
+
+        if self.is_expected_id(address, packet.id):
             self.queue.put((packet.data, address))
+            self.increase_expected_id(address)
+            self.queue_buffered_packets(address)
+        else:
+            self.get_buffered(address).append(packet)
+
+    def queue_buffered_packets(self, target: Address):
+        for packet in self.get_buffered(target):
+            if self.is_expected_id(target, packet.id):
+                self.get_buffered(target).remove(packet)
+                self.queue.put((packet.data, target))
+                self.increase_expected_id(target)
+                return self.queue_buffered_packets(target)
 
     def add_received(self, target: Address, id: int):
         if len(self.get_received(target)) <= id % WINDOW_SIZE:
@@ -107,11 +118,17 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     def get_received(self, target: Address) -> List[int]:
         return self.received.setdefault(target, [])
 
+    def get_buffered(self, target: Address) -> List[DataPacket]:
+        return self.buffered.setdefault(target, [])
+
+    def is_expected_id(self, address: Address, id: int) -> bool:
+        return self.expected_id.setdefault(address, 0) == id
+
+    def increase_expected_id(self, address: Address):
+        self.expected_id[address] += 1
+
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
-
-    def terminate(self):
-        self.online = False
 
 
 class SelectiveRepeatClientProtocol(
