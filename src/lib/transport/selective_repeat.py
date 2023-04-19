@@ -84,7 +84,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
         self.add_received(address, packet.id)
 
-        if self.is_expected_id(address, packet.id):
+        if self.is_expected_seq(address, packet.id):
             self.queue.put((packet.data, address))
             self.increase_expected_seq(address)
             self.queue_buffered_packets(address)
@@ -93,7 +93,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
     def queue_buffered_packets(self, target: Address):
         for packet in self.get_buffered(target):
-            if self.is_expected_id(target, packet.id):
+            if self.is_expected_seq(target, packet.id):
                 self.get_buffered(target).remove(packet)
                 self.queue.put((packet.data, target))
                 self.increase_expected_seq(target)
@@ -114,7 +114,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     def get_buffered(self, target: Address) -> List[DataPacket]:
         return self.buffered.setdefault(target, [])
 
-    def is_expected_id(self, address: Address, id: int) -> bool:
+    def is_expected_seq(self, address: Address, id: int) -> bool:
         return self.expected_seq.setdefault(address, 0) == id
 
     def get_seq(self, address: Address) -> int:
