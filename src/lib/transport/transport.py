@@ -29,9 +29,7 @@ class ReliableTransportClientProtocol(ReliableTransportProtocol):
     def recv(self) -> bytes:
         self.recv_from()[0]
 
-    @property
-    @target.setter
-    def target(self, target):
+    def set_target(self, target):
         self.target = target
 
 
