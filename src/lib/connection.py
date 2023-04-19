@@ -5,6 +5,7 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 from abc import ABC, abstractmethod
 from typing import Self
 from lib.constants import WILDCARD_ADDRESS, BUFFSIZE
+from lib.segmentation import Segmenter
 from lib.transport import StopAndWait
 from packet import AckPacket, Packet, ReadRequestPacket, WriteRequestPacket, DataPacket
 import socket
@@ -72,6 +73,7 @@ class StopAndWaitConnection(ConnectionRFTP):
         sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sckt.bind((ip, port))
         self.transport = StopAndWait(sckt)
+        self.segmenter = Segmenter(1)
 
     def recieve_from(self) -> bytes:
         #Aca tiene que haber un juego con el segmenter y demas
@@ -87,11 +89,13 @@ class StopAndWaitConnection(ConnectionRFTP):
         del self
 
     def sendto(self, data: bytes, address: tuple[str, int]) -> None:
-        #segments = self.segment_manager.create_and_return(data)
-
-        segments = []
-        for segment in segments:
-            self.transport.sendto(segment, address)
+        self.segmenter.segment(data)
+        segment = self.segmenter.get_next()
+        while segment != None:
+            answer, address = self.transport.sendto(segment, address)
+            #Checkear que pasa si devuelve error o algo asi
+            self.segmenter.remove_from_ack(answer)
+            segment = self.segmenter.get_next()
 
     def send_handshake(self, packet: 'Packet', address: tuple[str, int]):
         self.transport.sendto(packet, address)

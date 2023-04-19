@@ -47,7 +47,7 @@ class StopAndWait(Transport):
         
         return Packet.decode(stream), direccion
     
-    def sendto(self, data: 'Packet', address: tuple[str, int]) -> tuple[str, int]:
+    def sendto(self, data: 'Packet', address: tuple[str, int]) -> tuple['Packet', tuple[str, int]]:
         
         encoded_data = data.encode()
         sent = 0
@@ -56,8 +56,8 @@ class StopAndWait(Transport):
             encoded_data = encoded_data[:sent]
 
         try:
-            _answer, address = self.wait_for_answer(data)
-            return address
+            return self.wait_for_answer(data)
+            
         except socket.timeout:
             #Por ahora lo dejo como para que trate de mandarlo ad infinitum
             self.send(data)

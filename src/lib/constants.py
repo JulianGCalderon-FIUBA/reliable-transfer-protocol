@@ -37,6 +37,8 @@ END = 0x0
 MIN_HOST_AMOUNT = 2
 LINK_LOSS = 10
 ENDIAN = 'big'
+DATASIZE = 512
+MAX_BLOCK_NUMBER = 0xff
 
 SOCK_CONSTS.BUFFSIZE = 600 #Esto habria que mirarlo mejor despues
 SOCK_CONSTS.BASE_TIMEOUT = 1.0 #Un segundo de timeout de base
