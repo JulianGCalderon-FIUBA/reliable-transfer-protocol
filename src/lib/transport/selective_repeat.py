@@ -1,79 +1,103 @@
 
 from queue import Queue
 from random import random
-import socket
 import threading
-from typing import Tuple
+import socket
+from typing import Tuple, Dict, List
 
 from lib.transport.packet import AckPacket, DataPacket, Packet
 from lib.transport.transport import Address, ReliableTransportClientProtocol, ReliableTransportProtocol, ReliableTransportServerProtocol
 
 BUFSIZE = 4096
-TIMER_DURATION = 0.01
+TIMER_DURATION = 0.1
+SOCKET_TIMEOUT = 0.1
+WINDOW_SIZE = 10
+SEQUENCE_NUMBER_LIMIT = 32767
 
 class SelectiveRepeatProtocol(ReliableTransportProtocol):
     id = 0
     queue = Queue()
-    received = {}
-    timers = {}
+    received: Dict[Address, List[int]] = {}
+    timers: Dict[Address, Dict[int, threading.Timer]] = {}
+    online: bool = True
 
-    def __init__(self, bufsize=BUFSIZE):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.bufsize = bufsize
+    def __init__(self):
+        super().__init__()
 
+        self.socket.settimeout(SOCKET_TIMEOUT)
         self.read_thread = threading.Thread(target=self.start_read)
         self.read_thread.start()
 
     def send_to(self, data: bytes, target: Address):
-        self.sendto_with_id(data, target, self.id)
+        data_packet = DataPacket(self.id, data)
 
-        self.id += 1
+        self.send_data_packet(data_packet, target)
 
-    def sendto_with_id(self, data: bytes, target: Address, id: int):
-        packet = DataPacket(id, data)
+        self.increase_id_number()
 
-        timer = threading.Timer(TIMER_DURATION, lambda: self.sendto_with_id(packet.encode(), target, id))
-        self.timers.setdefault(target, {})[id] = timer
-        timer.start()
+    def send_data_packet(self, packet: DataPacket, target: Address):
+        self.start_timer(packet, target)
 
         self.socket.sendto(packet.encode(), target)
 
+    def start_timer(self, packet: DataPacket, target: Address):
+        timer = threading.Timer(TIMER_DURATION, lambda: self.send_data_packet(packet, target))
+        timer.start()
+        self.get_timers(target)[packet.id] = timer
+
+
+    def get_timers(self, target: Address) -> Dict[int, threading.Timer]:
+        return self.timers.setdefault(target, {})
+
+    def get_received(self, target: Address) -> List[int]:
+        return self.received.setdefault(target, [])
+
+    def add_received(self, target: Address, id: int):
+        if len(self.get_received(target)) <= id%WINDOW_SIZE:
+            self.get_received(target).append(id)
+        else:
+            self.get_received(target)[id%WINDOW_SIZE] = id
+
+    def increase_id_number(self):
+        self.id += 1
+        if self.id == SEQUENCE_NUMBER_LIMIT:
+            self.id = 0
     
     def start_read(self):
-        while True:
-            data, address = self.socket.recvfrom(self.bufsize)
+        while self.online:
+            try:
+                data, address = self.socket.recvfrom(BUFSIZE)
+            except socket.error:
+                continue
 
-            print("PROTOCOL: received packet")
-
+            # MANUAL PACKET LOSS
             while random() < 0.5:
-                data, address = self.socket.recvfrom(self.bufsize)
-                
+                try:
+                    data, address = self.socket.recvfrom(BUFSIZE)
+                except socket.error:
+                    continue
+            # MANUAL PACKET LOSS
+
             packet = Packet.decode(data)
             if isinstance(packet, AckPacket):
-                print("PROTOCOL: packet is ack")
+                try:
+                    self.get_timers(address).pop(packet.id).cancel()
+                except KeyError:
+                    pass
 
+            elif isinstance(packet, DataPacket):
+                self.socket.sendto(AckPacket(packet.id).encode(), address)
 
-                id = packet.id
-
-                self.timers.setdefault(address, {}).pop(id).cancel()
-
-            if isinstance(packet, DataPacket):
-                print("PROTOCOL: packet is data")
-
-
-                id = packet.id
-
-                ack = AckPacket(id)
-                self.socket.sendto(ack.encode(), address)
-
-                if id not in self.received.setdefault(address, []):
-                    self.received[address].append(id)
-                    data = packet.data
-                    self.queue.put((data, address))
+                if packet.id not in self.get_received(address):
+                    self.add_received(address, packet.id)
+                    self.queue.put((packet.data, address))
 
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
+    
+    def terminate(self):
+        self.online = False
 
 class SelectiveRepeatClientProtocol(ReliableTransportClientProtocol, SelectiveRepeatProtocol):
     pass

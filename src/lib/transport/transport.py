@@ -6,7 +6,7 @@ Address = Tuple[str, int]
 
 class ReliableTransportProtocol(ABC):
     def __init__(self):
-        self.socket = socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     @abstractmethod
     def send_to(data: bytes, address: Address):
