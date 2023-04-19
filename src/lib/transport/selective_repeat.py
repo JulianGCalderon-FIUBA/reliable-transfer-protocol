@@ -1,7 +1,6 @@
 from queue import Queue
 from random import random
 import threading
-import socket
 from typing import Tuple, Dict, List
 
 from lib.transport.packet import AckPacket, DataPacket, Packet
