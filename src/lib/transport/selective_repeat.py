@@ -30,7 +30,10 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         super().__init__()
 
         self.socket.settimeout(SOCKET_TIMEOUT)
-        self.read_thread = threading.Thread(target=self.start_read)
+        self.start_read_thread()
+
+    def start_read_thread(self):
+        self.read_thread = threading.Thread(target=self.read_thread)
         self.read_thread.start()
 
     def send_to(self, data: bytes, target: Address):
@@ -69,7 +72,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         if self.id == SEQUENCE_NUMBER_LIMIT:
             self.id = 0
 
-    def start_read(self):
+    def read_thread(self):
         while self.online:
             try:
                 data, address = self.socket.recvfrom(BUFSIZE)
