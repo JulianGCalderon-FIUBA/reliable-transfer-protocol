@@ -55,18 +55,6 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         timer.start()
         self.get_timers(target)[packet.id] = timer
 
-    def get_timers(self, target: Address) -> Dict[int, threading.Timer]:
-        return self.timers.setdefault(target, {})
-
-    def get_received(self, target: Address) -> List[int]:
-        return self.received.setdefault(target, [])
-
-    def add_received(self, target: Address, id: int):
-        if len(self.get_received(target)) <= id % WINDOW_SIZE:
-            self.get_received(target).append(id)
-        else:
-            self.get_received(target)[id % WINDOW_SIZE] = id
-
     def increase_id_number(self):
         self.id += 1
         if self.id == SEQUENCE_NUMBER_LIMIT:
@@ -89,17 +77,35 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
             packet = Packet.decode(data)
             if isinstance(packet, AckPacket):
-                try:
-                    self.get_timers(address).pop(packet.id).cancel()
-                except KeyError:
-                    pass
+                self.on_ack_packet(packet, address)
 
             elif isinstance(packet, DataPacket):
-                self.socket.sendto(AckPacket(packet.id).encode(), address)
+                self.on_data_packet(packet, address)
 
-                if packet.id not in self.get_received(address):
-                    self.add_received(address, packet.id)
-                    self.queue.put((packet.data, address))
+    def on_ack_packet(self, packet, address):
+        try:
+            self.get_timers(address).pop(packet.id).cancel()
+        except KeyError:
+            pass
+
+    def on_data_packet(self, packet, address):
+        self.socket.sendto(AckPacket(packet.id).encode(), address)
+
+        if packet.id not in self.get_received(address):
+            self.add_received(address, packet.id)
+            self.queue.put((packet.data, address))
+
+    def add_received(self, target: Address, id: int):
+        if len(self.get_received(target)) <= id % WINDOW_SIZE:
+            self.get_received(target).append(id)
+        else:
+            self.get_received(target)[id % WINDOW_SIZE] = id
+
+    def get_timers(self, target: Address) -> Dict[int, threading.Timer]:
+        return self.timers.setdefault(target, {})
+
+    def get_received(self, target: Address) -> List[int]:
+        return self.received.setdefault(target, [])
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
