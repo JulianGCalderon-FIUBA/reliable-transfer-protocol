@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from socket import socket
+from socket import socket, timeout
 from typing import Self
-from lib.connection import SocketNotBindedException
 from lib.constants import BUFFSIZE, SOCK_CONSTS
 from lib.exceptions import IncorrectAnswerException
-from lib.packet import Packet
+from lib.packet import AckPacket, Packet
 
 class Transport(ABC):
     
@@ -27,11 +26,18 @@ class Transport(ABC):
         self.socket.settimeout(self.timeout)
 
         possible_answer, address = self.recvfrom()
-
+        
         if packet.is_expected_answer(possible_answer):
             return possible_answer, address
         
         raise IncorrectAnswerException(possible_answer)
+    
+    """
+    Envia el ACK de un paquete
+    """
+    def send_ack(self, from_packet: 'Packet', to: tuple[str, int]):
+        ack = AckPacket(from_packet.block)
+        self.socket.sendto(ack.encode(), to)
 
 
     
@@ -40,11 +46,11 @@ class Transport(ABC):
 class StopAndWait(Transport):
     
     def __init__(self, socket: socket, port: int, address="127.0.0.1") -> Self:
-        super().__init__(socket, port, address)
+        super().__init__(socket)
 
     def recvfrom(self) -> tuple['Packet', tuple[str, int]]:
         stream, direccion = self.socket.recvfrom(BUFFSIZE)
-        
+
         return Packet.decode(stream), direccion
     
     def sendto(self, data: 'Packet', address: tuple[str, int]) -> tuple['Packet', tuple[str, int]]:
@@ -58,11 +64,11 @@ class StopAndWait(Transport):
         try:
             return self.wait_for_answer(data)
             
-        except socket.timeout:
+        except TimeoutError:
             #Por ahora lo dejo como para que trate de mandarlo ad infinitum
-            self.send(data)
+            self.sendto(data, address)
         except IncorrectAnswerException:
             #Puede ser un error, o no estar en orden. Checkear a futuro
-            pass
+            raise IncorrectAnswerException(data)
         
         

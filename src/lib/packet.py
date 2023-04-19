@@ -1,5 +1,5 @@
 from typing import Self
-from constants import OPCODES, ENDIAN, END
+from lib.constants import OPCODES, ENDIAN, END
 from abc import ABC, abstractmethod
 
 """
@@ -78,6 +78,7 @@ class WriteRequestPacket(Packet):
     def __init__(self, name) -> Self:
         self.opcode: int = OPCODES.WRQ
         self.name: str = name
+        
 
     @classmethod
     def decode(cls, stream: bytes) -> Self:
@@ -91,7 +92,8 @@ class WriteRequestPacket(Packet):
                 + END.to_bytes(1, ENDIAN))
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        if other.__class__ != DataPacket.__class__:
+        if not isinstance(other, AckPacket) :
+            
             return False
         
         return other.block == 0
@@ -113,32 +115,33 @@ class ReadRequestPacket(Packet):
                 + END.to_bytes(1, ENDIAN))
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        if other.__class__ != DataPacket.__class__:
+        if not isinstance(other, AckPacket):
             return False
         
         return other.block == 0
 
 class DataPacket(Packet):
     def __init__(self, block: int, data: bytes) -> Self:
-        self.opcode = OPCODES.DATA
+        self.opcode: int = OPCODES.DATA
         self.block = block
-        self.data = data
+        self.data: str = data
 
 
     @classmethod
     def decode(cls, stream: bytes):
         block = int.from_bytes(stream[:2], ENDIAN)
         data = stream[2:]
-        return cls(block, data)
+        return cls(block, data.decode())
 
 
     def encode(self) -> bytes:
+        
         return (self.opcode.to_bytes(2, ENDIAN)
                 + self.block.to_bytes(2, ENDIAN) 
-                + self.data)
+                + self.data.encode())
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        return other.__class__ == AckPacket.__class__ and other.block == self.block
+        return isinstance(other, AckPacket) and other.block == self.block
 
 class AckPacket(Packet):
     def __init__(self, block_number: int) -> Self:
@@ -157,7 +160,7 @@ class AckPacket(Packet):
     
     def is_expected_answer(self, other: 'Packet') -> bool:
         #Esto va a haber que checkearlo, por que el block se puede dar vuelta (volver a 1)
-        return other.__class__ == DataPacket.__class__ and other.block == self.block + 1
+        return isinstance(other, DataPacket) and other.block == self.block + 1
 
 class ErrorPacket(Packet):
     def __init__(self, error_code: int) -> Self:

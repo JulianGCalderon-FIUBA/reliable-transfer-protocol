@@ -13,18 +13,28 @@ class Segmenter:
 
     
     def segment(self, data: bytes):
-        total_data_packets = len(data) // DATASIZE
-
-        for i in range(1, total_data_packets + 1):
+        i = 1
+        
+        while len(data) > 0:
             packet = DataPacket(i % MAX_BLOCK_NUMBER, data[:DATASIZE])
             data = data[DATASIZE:]
             self.segments.append(packet)
+            i += 1
+        
 
+    def desegment(self) -> bytes:
+        self.segments = self.segments + list(self.window.values())
+        
+        segment_bytes = bytes()
+        for segment in self.segments:
+            segment_bytes = segment_bytes + segment.data.encode()
 
+        return segment_bytes
     
     def add_segment(self, data: 'Packet'):
+        
         if len(self.window) == self.window_size:
-            self.segments = self.segments + list(self.window.items())
+            self.segments = self.segments + list(self.window.values())
             self.window.clear()
         self.window[data.block] = data
 

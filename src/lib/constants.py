@@ -10,7 +10,7 @@ SOCK_CONSTS = types.SimpleNamespace()
     |2 bytes |string   |1 byte |
     |Opcode  |Filename |0      |
 """
-OPCODES.RQQ = 1
+OPCODES.RRQ = 1
 OPCODES.WRQ = 2
 
 """
@@ -38,6 +38,7 @@ MIN_HOST_AMOUNT = 2
 LINK_LOSS = 10
 ENDIAN = 'big'
 DATASIZE = 512
+BUFFSIZE = 600
 MAX_BLOCK_NUMBER = 0xff
 
 SOCK_CONSTS.BUFFSIZE = 600 #Esto habria que mirarlo mejor despues

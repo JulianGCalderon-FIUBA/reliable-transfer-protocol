@@ -15,9 +15,9 @@ def start_parser() -> 'ArgumentParser':
     group.add_argument('-v', '--verbose', help = 'increase output verbosity') 
     group.add_argument('-q', '--quiet', help = 'decrease output verbosity') 
 
-    parser.add_argument('-H', '--host', type = int, help = 'server IP address', nargs = 1) 
-    parser.add_argument('-p', '--port', type = int, help = 'server port', nargs = 1) 
-    parser.add_argument('-s', '--src', help = 'source file path', nargs = 1) 
+    parser.add_argument('-H', '--host', type = str, help = 'server IP address') 
+    parser.add_argument('-p', '--port', type = int, help = 'server port') 
+    parser.add_argument('-s', '--src', help = 'source file path') 
     parser.add_argument('-n', '--name', help = 'file name', nargs = 1) 
 
     return parser
@@ -29,11 +29,12 @@ def main(arguments):
     # send file using stop-and-wait 
     # receive answer in bound port
     # get host ephemeral port from answer
-    connection = StopAndWaitConnection(arguments.host, arguments.port)
-    connection.send_data(WriteRequestPacket(filename=arguments.name))
+    print(arguments.name)
+    connection = StopAndWaitConnection(arguments.host, 9999)
+    connection.send_handshake(WriteRequestPacket(arguments.src), (arguments.host, arguments.port))
     with open(arguments.src) as upload_file:
-        while (data := upload_file.read(512)):
-            connection.send_data(DataPacket.encode(data))
+        data = upload_file.read(-1)
+        connection.sendto(data, (arguments.host, arguments.port))
 
 
 if __name__ == "__main__":

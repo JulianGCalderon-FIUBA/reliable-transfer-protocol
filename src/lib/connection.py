@@ -4,10 +4,10 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 """
 from abc import ABC, abstractmethod
 from typing import Self
-from lib.constants import WILDCARD_ADDRESS, BUFFSIZE
+from lib.constants import DATASIZE, WILDCARD_ADDRESS
 from lib.segmentation import Segmenter
 from lib.transport import StopAndWait
-from packet import AckPacket, Packet, ReadRequestPacket, WriteRequestPacket, DataPacket
+from lib.packet import AckPacket, Packet, ReadRequestPacket, WriteRequestPacket, DataPacket
 import socket
 
 class SocketNotBindedException(Exception):
@@ -72,17 +72,31 @@ class StopAndWaitConnection(ConnectionRFTP):
         
         sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sckt.bind((ip, port))
-        self.transport = StopAndWait(sckt)
+        self.transport = StopAndWait(sckt, port, ip)
         self.segmenter = Segmenter(1)
 
     def recieve_from(self) -> bytes:
-        #Aca tiene que haber un juego con el segmenter y demas
-        pass
+        
+        packet, address = self.transport.recvfrom();
+        
+        #Chekear que sea de data
+        self.transport.send_ack(packet, address)
+        self.segmenter.add_segment(packet)
+        while len(packet.encode()) >= DATASIZE:
+            
+            packet, address = self.transport.recvfrom();
+            self.transport.send_ack(packet, address)
+            self.segmenter.add_segment(packet)
+
+        return self.segmenter.desegment()
+        
 
     def listen(self) -> tuple['Packet', tuple[str, int]]:
-        paquete, direccion = self.recieve_from()
+        paquete, direccion = self.transport.recvfrom()
         
         return paquete, direccion
+    def respond_handshake(self, address, status=True):
+        self.transport.send_ack(DataPacket(0, ''), address)
 
     def close(self) -> None:
         self.transport.close()
@@ -93,6 +107,7 @@ class StopAndWaitConnection(ConnectionRFTP):
         segment = self.segmenter.get_next()
         while segment != None:
             answer, address = self.transport.sendto(segment, address)
+            
             #Checkear que pasa si devuelve error o algo asi
             self.segmenter.remove_from_ack(answer)
             segment = self.segmenter.get_next()
