@@ -19,12 +19,12 @@ SEQUENCE_NUMBER_LIMIT = 32767
 
 
 class SelectiveRepeatProtocol(ReliableTransportProtocol):
-    id = 0
     queue = Queue()
+    next_seq: Dict[Address, int] = {}
     received: Dict[Address, List[int]] = {}
     timers: Dict[Address, Dict[int, threading.Timer]] = {}
     buffered: Dict[Address, List[(DataPacket)]] = {}
-    expected_id: Dict[Address, int] = {}
+    expected_seq: Dict[Address, int] = {}
 
     def __init__(self):
         super().__init__()
@@ -36,11 +36,11 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         self.read_thread.start()
 
     def send_to(self, data: bytes, target: Address):
-        data_packet = DataPacket(self.id, data)
+        data_packet = DataPacket(self.get_seq(target), data)
 
         self.send_data_packet(data_packet, target)
 
-        self.id = self.increase_sequence(self.id)
+        self.increase_next_seq(target)
 
     def send_data_packet(self, packet: DataPacket, target: Address):
         self.start_timer(packet, target)
@@ -86,7 +86,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
         if self.is_expected_id(address, packet.id):
             self.queue.put((packet.data, address))
-            self.increase_expected_id(address)
+            self.increase_expected_seq(address)
             self.queue_buffered_packets(address)
         else:
             self.get_buffered(address).append(packet)
@@ -96,7 +96,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
             if self.is_expected_id(target, packet.id):
                 self.get_buffered(target).remove(packet)
                 self.queue.put((packet.data, target))
-                self.increase_expected_id(target)
+                self.increase_expected_seq(target)
                 return self.queue_buffered_packets(target)
 
     def add_received(self, target: Address, id: int):
@@ -115,12 +115,18 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         return self.buffered.setdefault(target, [])
 
     def is_expected_id(self, address: Address, id: int) -> bool:
-        return self.expected_id.setdefault(address, 0) == id
+        return self.expected_seq.setdefault(address, 0) == id
 
-    def increase_expected_id(self, address: Address):
-        self.expected_id[address] = self.increase_sequence(self.expected_id[address])
+    def get_seq(self, address: Address) -> int:
+        return self.next_seq.setdefault(address, 0)
 
-    def increase_sequence(self, number: int) -> int:
+    def increase_next_seq(self, address: Address):
+        self.next_seq[address] = self.wrapped_increase(self.next_seq[address])
+
+    def increase_expected_seq(self, address: Address):
+        self.expected_seq[address] = self.wrapped_increase(self.expected_seq[address])
+
+    def wrapped_increase(self, number: int) -> int:
         number += 1
         if number == SEQUENCE_NUMBER_LIMIT:
             number = 0

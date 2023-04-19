@@ -3,8 +3,8 @@ from lib.transport.stop_and_wait import StopAndWaitServerProtocol
 
 ADDRESS = ("127.0.0.1", 9000)
 
-# transport = SelectiveRepeatServerProtocol(ADDRESS)
-transport = StopAndWaitServerProtocol(ADDRESS)
+transport = SelectiveRepeatServerProtocol(ADDRESS)
+# transport = StopAndWaitServerProtocol(ADDRESS)
 
 
 while True:
