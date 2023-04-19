@@ -1,4 +1,3 @@
-
 from queue import Queue
 from random import random
 import threading
@@ -6,13 +5,19 @@ import socket
 from typing import Tuple, Dict, List
 
 from lib.transport.packet import AckPacket, DataPacket, Packet
-from lib.transport.transport import Address, ReliableTransportClientProtocol, ReliableTransportProtocol, ReliableTransportServerProtocol
+from lib.transport.transport import (
+    Address,
+    ReliableTransportClientProtocol,
+    ReliableTransportProtocol,
+    ReliableTransportServerProtocol,
+)
 
 BUFSIZE = 4096
 TIMER_DURATION = 0.1
 SOCKET_TIMEOUT = 0.1
 WINDOW_SIZE = 10
 SEQUENCE_NUMBER_LIMIT = 32767
+
 
 class SelectiveRepeatProtocol(ReliableTransportProtocol):
     id = 0
@@ -41,10 +46,11 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         self.socket.sendto(packet.encode(), target)
 
     def start_timer(self, packet: DataPacket, target: Address):
-        timer = threading.Timer(TIMER_DURATION, lambda: self.send_data_packet(packet, target))
+        timer = threading.Timer(
+            TIMER_DURATION, lambda: self.send_data_packet(packet, target)
+        )
         timer.start()
         self.get_timers(target)[packet.id] = timer
-
 
     def get_timers(self, target: Address) -> Dict[int, threading.Timer]:
         return self.timers.setdefault(target, {})
@@ -53,16 +59,16 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         return self.received.setdefault(target, [])
 
     def add_received(self, target: Address, id: int):
-        if len(self.get_received(target)) <= id%WINDOW_SIZE:
+        if len(self.get_received(target)) <= id % WINDOW_SIZE:
             self.get_received(target).append(id)
         else:
-            self.get_received(target)[id%WINDOW_SIZE] = id
+            self.get_received(target)[id % WINDOW_SIZE] = id
 
     def increase_id_number(self):
         self.id += 1
         if self.id == SEQUENCE_NUMBER_LIMIT:
             self.id = 0
-    
+
     def start_read(self):
         while self.online:
             try:
@@ -92,15 +98,20 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
                     self.add_received(address, packet.id)
                     self.queue.put((packet.data, address))
 
-
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
-    
+
     def terminate(self):
         self.online = False
 
-class SelectiveRepeatClientProtocol(ReliableTransportClientProtocol, SelectiveRepeatProtocol):
+
+class SelectiveRepeatClientProtocol(
+    ReliableTransportClientProtocol, SelectiveRepeatProtocol
+):
     pass
 
-class SelectiveRepeatServerProtocol(ReliableTransportServerProtocol, SelectiveRepeatProtocol):
+
+class SelectiveRepeatServerProtocol(
+    ReliableTransportServerProtocol, SelectiveRepeatProtocol
+):
     pass
