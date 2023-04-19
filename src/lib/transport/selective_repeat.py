@@ -25,7 +25,6 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     timers: Dict[Address, Dict[int, threading.Timer]] = {}
     buffered: Dict[Address, List[(DataPacket)]] = {}
     expected_id: Dict[Address, int] = {}
-    online = True
 
     def __init__(self):
         super().__init__()
@@ -56,7 +55,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         self.get_timers(target)[packet.id] = timer
 
     def read_thread(self):
-        while self.online:
+        while True:
             data, address = self.socket.recvfrom(BUFSIZE)
 
             # MANUAL PACKET LOSS
