@@ -14,7 +14,6 @@ from lib.transport.transport import (
 
 BUFSIZE = 4096
 TIMER_DURATION = 0.1
-SOCKET_TIMEOUT = 0.1
 WINDOW_SIZE = 10
 SEQUENCE_NUMBER_LIMIT = 32767
 
@@ -24,8 +23,9 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
     queue = Queue()
     received: Dict[Address, List[int]] = {}
     timers: Dict[Address, Dict[int, threading.Timer]] = {}
-    buffered: Dict[Address, List[DataPacket]] = {}
+    buffered: Dict[Address, List[(DataPacket)]] = {}
     expected_id: Dict[Address, int] = {}
+    online = True
 
     def __init__(self):
         super().__init__()
@@ -41,7 +41,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
         self.send_data_packet(data_packet, target)
 
-        self.increase_id_number()
+        self.id = self.increase_sequence(self.id)
 
     def send_data_packet(self, packet: DataPacket, target: Address):
         self.start_timer(packet, target)
@@ -55,19 +55,13 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         timer.start()
         self.get_timers(target)[packet.id] = timer
 
-    def increase_id_number(self):
-        self.id += 1
-        if self.id == SEQUENCE_NUMBER_LIMIT:
-            self.id = 0
-
     def read_thread(self):
-        while True:
+        while self.online:
             data, address = self.socket.recvfrom(BUFSIZE)
 
             # MANUAL PACKET LOSS
             while random() < 0.1:
                 data, address = self.socket.recvfrom(BUFSIZE)
-
             # MANUAL PACKET LOSS
 
             packet = Packet.decode(data)
@@ -125,7 +119,14 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         return self.expected_id.setdefault(address, 0) == id
 
     def increase_expected_id(self, address: Address):
-        self.expected_id[address] += 1
+        self.expected_id[address] = self.increase_sequence(self.expected_id[address])
+
+    def increase_sequence(self, number: int) -> int:
+        number += 1
+        if number == SEQUENCE_NUMBER_LIMIT:
+            number = 0
+
+        return number
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
