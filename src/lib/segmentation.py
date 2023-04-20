@@ -1,56 +1,49 @@
-from abc import ABC, abstractmethod
 from lib.constants import DATASIZE, MAX_BLOCK_NUMBER
-
+from lib.exceptions import UnorderedPacket
 from lib.packet import DataFPacket, Packet
 
 
 class Segmenter:
     def __init__(self):
         self.segments = []
-        self.window = {}
+        self.expected_segment = 1
 
     def segment(self, data: bytes):
-        i = 1
 
         while len(data) > 0:
-            
-            packet = DataFPacket(i % (MAX_BLOCK_NUMBER + 1), data[:DATASIZE])
+
+            packet = DataFPacket(self.expected_segment, data[:DATASIZE])
             data = data[DATASIZE:]
             self.segments.append(packet)
-            i += 1
-            if i % (MAX_BLOCK_NUMBER + 1) == 0:
-                i += 1
+            self.advance_seq_number()
 
     def desegment(self) -> bytes:
-        self.concatenate_segments()
 
         segment_bytes = bytes()
         for segment in self.segments:
-            
-            segment_bytes = segment_bytes + segment.data.encode()
+
+            segment_bytes = segment_bytes + segment.data
 
         return segment_bytes
 
-    def add_segment(self, data: "Packet"):
-        if self.window.get(data.block, None) != None and len(self.window) < MAX_BLOCK_NUMBER:
+    def add_segment(self, data: "DataFPacket"):
+        if self.check_last_segment(data.block):
+            self.segments.append(data)
+            self.advance_seq_number()
             return
-        if len(self.window) == MAX_BLOCK_NUMBER:
-            print(data.block)
-            self.concatenate_segments()
-
-        self.window[data.block] = data
-
-    def concatenate_segments(self):
-        for i in range(1, len(self.window) + 1):
-            if self.window.get(i, None) == None:
-                
-                raise Exception("Falta un bloque")
-            self.segments += [self.window.get(i)]
-
-        self.window.clear()
+        raise UnorderedPacket(self.expected_segment, data.block)
 
     def get_next(self) -> "Packet":
         if len(self.segments) == 0:
-            return None
+            return None  # type: ignore
         return self.segments.pop(0)
         # Devolver un error si me pase
+
+    def check_last_segment(self, new_segment: int) -> bool:
+        return self.expected_segment == new_segment
+    
+    def advance_seq_number(self):
+        if self.expected_segment == MAX_BLOCK_NUMBER:
+            self.expected_segment = 0
+        self.expected_segment += 1
+        

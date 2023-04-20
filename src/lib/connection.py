@@ -4,7 +4,8 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 from abc import ABC
 from lib.constants import DATASIZE, WILDCARD_ADDRESS
 from lib.segmentation import Segmenter
-from lib.packet import AckFPacket, Packet, ReadRequestPacket, WriteRequestPacket
+from lib.packet import AckFPacket, DataFPacket, Packet, \
+    ReadRequestPacket, WriteRequestPacket
 
 from lib.transport.transport import Address, ReliableTransportProtocol
 
@@ -24,6 +25,7 @@ class ConnectionRFTP(ABC):
 
     def listen(self) -> tuple["Packet", Address]:
         packet, address = self.socket.recv_from()
+        
         return Packet.decode(packet), address
 
     """
@@ -41,27 +43,29 @@ class ConnectionRFTP(ABC):
         self.segmenter.segment(data)
         packet = self.segmenter.get_next()
         while packet is not None:
-            # print("Sending: ", packet, packet.block)
+            
             self.socket.send_to(packet.encode(), address)
             packet = self.segmenter.get_next()
 
     """
-    Intenta recuperar un paquete de la conexion y la direccion de la cual lo recupero
+    Intenta recuperar un paquete de la conexion
+    y la direccion de la cual lo recupero
     """
 
     def recieve_from(self) -> tuple[bytes, Address]:  # como string de bytes
-        return self.socket.recv_from()
+        packet, address = self.socket.recv_from()
+        
+        return packet, address
 
     def send_handshake(self, packet: "Packet", address: tuple[str, int]):
         self.socket.send_to(packet.encode(), address)
         answer, address = self.recieve_from()
         answer = Packet.decode(answer)
         if packet.is_expected_answer(answer):
-            print("Handshaked")
             return answer, address
         else:
-            print(answer)
-            raise Exception("Invalid handshake")  # Agregar error aca
+
+            raise packet.get_fail_reason()  # type: ignore
 
     def answer_handshake(self, address: Address, ok=True):
         if ok:
@@ -73,7 +77,10 @@ class ConnectionRFTP(ABC):
     Inicia un upload de datos
     """
 
-    def upload(self, filename: str, data: bytes, address: tuple[str, int]) -> None:
+    def upload(
+            self, filename: str, data: bytes, address: tuple[str, int]
+            ) -> None:
+
         self.send_handshake(WriteRequestPacket(filename), address)
         self.sendto(data, address)
 
@@ -86,18 +93,19 @@ class ConnectionRFTP(ABC):
         return self.recieve_file()
 
     def recieve_file(self) -> bytes:
-        packet, address = self.recieve_from()
+        packet, _address = self.recieve_from()
         # Chekear que sea de data
-        packet = Packet.decode(packet)
+        
+        packet = DataFPacket.decode_as_data(packet)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:
-            # print("Recieved", packet.block)
-            packet, address = self.recieve_from()
-            packet = Packet.decode(packet)
+            
+            packet, _address = self.recieve_from()
+            
+            packet = DataFPacket.decode_as_data(packet)
 
             self.segmenter.add_segment(packet)
 
-        print("Going out")
         return self.segmenter.desegment()
 
 

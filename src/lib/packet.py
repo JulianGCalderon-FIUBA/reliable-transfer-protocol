@@ -8,7 +8,8 @@ Define la interfaz para la implementación de cada tipo de paquete
 
 class Packet(ABC):
     """
-    Crea cada tipo de paquete particular manualmente a partir de los campos especificos
+    Crea cada tipo de paquete particular manualmente
+    a partir de los campos especificos
     """
 
     @abstractmethod
@@ -134,22 +135,29 @@ class ReadRequestPacket(Packet):
 
 
 class DataFPacket(Packet):
-    def __init__(self, block: int, data: str):
+    def __init__(self, block: int, data: bytes):
         self.opcode: int = OPCODES.DATA
         self.block = block
-        self.data: str = data
+        self.data: bytes = data
 
     @classmethod
     def decode(cls, stream: bytes):
         block = int.from_bytes(stream[:2], ENDIAN)
         data = stream[2:]
-        return cls(block, data.decode())
+        return cls(block, data)
+
+    @classmethod
+    def decode_as_data(cls, stream: bytes) -> 'DataFPacket':
+        packet = Packet.decode(stream)
+        if not isinstance(packet, DataFPacket):
+            raise Exception("Invalid data packet")
+        return packet
 
     def encode(self) -> bytes:
         return (
             self.opcode.to_bytes(2, ENDIAN)
             + self.block.to_bytes(2, ENDIAN)
-            + self.data.encode()
+            + self.data
         )
 
     def is_expected_answer(self, other: "Packet") -> bool:
@@ -187,9 +195,14 @@ class ErrorPacket(Packet):
         return cls(error_code)
 
     def encode(self) -> bytes:
-        return self.opcode.to_bytes(2, ENDIAN) + self.error_code.to_bytes(2, ENDIAN)
+        return self.opcode.to_bytes(2, ENDIAN) \
+                + self.error_code.to_bytes(2, ENDIAN)
 
     def is_expected_answer(self, other: "Packet") -> bool:
         # Devuelve False, no encontre que tenga un ACK, pero deberia
         # La RFC marca que funciona como ACK para cualquier tipo de paquete.
         return False
+
+    def get_fail_reason(self) -> Exception:
+        # Armate un par de error codes.
+        return Exception()

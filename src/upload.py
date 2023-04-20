@@ -40,7 +40,7 @@ def main(arguments):
     )
     with open(arguments.src) as upload_file:
         data = upload_file.read(-1)
-        connection.sendto(data, address)
+        connection.sendto(data.encode(), address)
 
 
 if __name__ == "__main__":
