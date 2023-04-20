@@ -10,8 +10,8 @@ transportSR = SelectiveRepeatServerProtocol(("0.0.0.0", args.port))
 transportSNW = StopAndWaitServerProtocol(("0.0.0.0", args.port + 1))
 
 while True:
-    data, address = transportSR.recv_from()
-    print(f"Llego: {data.decode()} de: {address} en Selective Repeat")
+    data, target = transportSR.recv_from()
+    print(f"Llego: {data.decode()} de: {target} en Selective Repeat")
 
-    data, address = transportSNW.recv_from()
-    print(f"Llego: {data.decode()} de: {address} en Stop And Wait")
+    data, target = transportSNW.recv_from()
+    print(f"Llego: {data.decode()} de: {target} en Stop And Wait")
