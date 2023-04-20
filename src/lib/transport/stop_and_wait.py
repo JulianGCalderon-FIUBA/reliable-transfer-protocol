@@ -51,6 +51,9 @@ class StopAndWaitProtocol(ReliableTransportProtocol):
             self.timer.cancel()
 
     def on_data_packet(self, packet, address):
+        if packet.length != len(packet.data):
+            return
+
         self.socket.sendto(AckPacket(packet.id).encode(), address)
 
         if self.get_expected_seq(address) == packet.id:
@@ -91,8 +94,6 @@ class StopAndWaitProtocol(ReliableTransportProtocol):
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
-
-    pass
 
 
 class StopAndWaitClientProtocol(ReliableTransportClientProtocol, StopAndWaitProtocol):
