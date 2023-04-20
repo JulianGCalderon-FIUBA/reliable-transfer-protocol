@@ -4,6 +4,9 @@ from typing import Tuple
 
 Address = Tuple[str, int]
 
+TIMER_DURATION = 0.1
+BUFSIZE = 4096
+
 
 class ReliableTransportProtocol(ABC):
     """

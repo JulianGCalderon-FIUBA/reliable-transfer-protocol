@@ -4,15 +4,13 @@ import threading
 from typing import Dict, Tuple
 from lib.transport.packet import AckPacket, DataPacket, Packet
 from lib.transport.transport import (
+    BUFSIZE,
+    TIMER_DURATION,
     Address,
     ReliableTransportClientProtocol,
     ReliableTransportProtocol,
     ReliableTransportServerProtocol,
 )
-
-BUFSIZE = 4096
-TIMER_DURATION = 0.1
-WINDOW_SIZE = 10
 
 
 class StopAndWaitProtocol(ReliableTransportProtocol):

@@ -5,15 +5,26 @@ from typing import Tuple, Dict, List
 
 from lib.transport.packet import MAX_SEQUENCE, AckPacket, DataPacket, Packet
 from lib.transport.transport import (
+    BUFSIZE,
+    TIMER_DURATION,
     Address,
     ReliableTransportClientProtocol,
     ReliableTransportProtocol,
     ReliableTransportServerProtocol,
 )
 
-BUFSIZE = 4096
-TIMER_DURATION = 0.1
 WINDOW_SIZE = 10
+
+"""
+IMPORTANTE:
+- Actualmente no se esta utilizando el window size. Se debe limitar la cantidad
+    de paquetes que se pueden enviar sin recibir un acknowledgment.
+- EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
+    idealmente los packets deberian poder ser segmentados en caso de que sean
+    demasiado grandes.
+- La duracion del timer esta hardcodeada en 0.1 segundos. Este valor es arbitrario
+    y se podria cambiar.
+"""
 
 
 class SelectiveRepeatProtocol(ReliableTransportProtocol):
@@ -196,6 +207,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         """
         Incrementa un numero de secuencia, y si este llega al maximo,
         lo reinicia a 0"""
+
         if number == MAX_SEQUENCE:
             return 0
 
