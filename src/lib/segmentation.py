@@ -13,11 +13,12 @@ class Segmenter:
         i = 1
 
         while len(data) > 0:
-            packet = DataFPacket(i % MAX_BLOCK_NUMBER, data[:DATASIZE])
+            
+            packet = DataFPacket(i % (MAX_BLOCK_NUMBER + 1), data[:DATASIZE])
             data = data[DATASIZE:]
             self.segments.append(packet)
             i += 1
-            if i % MAX_BLOCK_NUMBER == 0:
+            if i % (MAX_BLOCK_NUMBER + 1) == 0:
                 i += 1
 
     def desegment(self) -> bytes:
@@ -25,14 +26,16 @@ class Segmenter:
 
         segment_bytes = bytes()
         for segment in self.segments:
+            
             segment_bytes = segment_bytes + segment.data.encode()
 
         return segment_bytes
 
     def add_segment(self, data: "Packet"):
-        if self.window.get(data.block, None) != None:
+        if self.window.get(data.block, None) != None and len(self.window) < MAX_BLOCK_NUMBER:
             return
         if len(self.window) == MAX_BLOCK_NUMBER:
+            print(data.block)
             self.concatenate_segments()
 
         self.window[data.block] = data
@@ -40,6 +43,7 @@ class Segmenter:
     def concatenate_segments(self):
         for i in range(1, len(self.window) + 1):
             if self.window.get(i, None) == None:
+                
                 raise Exception("Falta un bloque")
             self.segments += [self.window.get(i)]
 

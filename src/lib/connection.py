@@ -96,6 +96,7 @@ class ConnectionRFTP(ABC):
             packet = Packet.decode(packet)
 
             self.segmenter.add_segment(packet)
+
         print("Going out")
         return self.segmenter.desegment()
 
