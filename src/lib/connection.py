@@ -10,10 +10,6 @@ from lib.packet import AckFPacket, DataFPacket, Packet, \
 from lib.transport.transport import Address, ReliableTransportProtocol
 
 
-class SocketNotBindedException(Exception):
-    pass
-
-
 class ConnectionRFTP(ABC):
     def __init__(self, socket: ReliableTransportProtocol):
         self.socket = socket

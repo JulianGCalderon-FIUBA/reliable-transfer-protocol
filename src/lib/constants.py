@@ -5,6 +5,7 @@ WILDCARD_ADDRESS = "0.0.0.0"
 
 OPCODES = types.SimpleNamespace()
 SOCK_CONSTS = types.SimpleNamespace()
+ERRORCODES = types.SimpleNamespace()
 
 """
     |2 bytes |string   |1 byte |
@@ -32,6 +33,13 @@ OPCODES.ACK = 4
     |Opcode  |ErrorCode |ErrMsg |0       |
 """
 OPCODES.ERROR = 5
+
+ERRORCODES.UNORDERED = 1
+ERRORCODES.FILEEXISTS = 2
+ERRORCODES.FILENOTEXISTS = 3
+ERRORCODES.INVALIDPACKET = 4
+ERRORCODES.FAILEDHANDSHAKE = 5
+
 
 END = 0x0
 MIN_HOST_AMOUNT = 2

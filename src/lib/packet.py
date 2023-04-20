@@ -1,5 +1,8 @@
-from lib.constants import OPCODES, ENDIAN, END
+from lib.constants import ERRORCODES, OPCODES, ENDIAN, END
 from abc import ABC, abstractmethod
+
+from lib.exceptions import FailedHandshake, FileExists, FilenNotExists, \
+    InvalidPacket, UnorderedPacket
 
 """
 Define la interfaz para la implementación de cada tipo de paquete
@@ -150,7 +153,7 @@ class DataFPacket(Packet):
     def decode_as_data(cls, stream: bytes) -> 'DataFPacket':
         packet = Packet.decode(stream)
         if not isinstance(packet, DataFPacket):
-            raise Exception("Invalid data packet")
+            raise InvalidPacket()
         return packet
 
     def encode(self) -> bytes:
@@ -204,5 +207,16 @@ class ErrorPacket(Packet):
         return False
 
     def get_fail_reason(self) -> Exception:
-        # Armate un par de error codes.
-        return Exception()
+        match self.error_code:
+            case ERRORCODES.UNORDERED:
+                return UnorderedPacket()
+            case ERRORCODES.FILEEXISTS:
+                return FileExists()
+            case ERRORCODES.FILENOTEXISTS:
+                return FilenNotExists()
+            case ERRORCODES.FAILEDHANDSHAKE:
+                return FailedHandshake()
+            case ERRORCODES.INVALIDPACKET:
+                return InvalidPacket()
+            case _:
+                return Exception()
