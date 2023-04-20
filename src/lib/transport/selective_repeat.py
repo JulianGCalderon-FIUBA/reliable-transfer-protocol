@@ -57,8 +57,8 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
     def recv_from(self) -> Tuple[bytes, Address]:
         """
-        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles, se bloquea
-        hasta que se reciba uno."""
+        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles,
+        se bloquea hasta que se reciba uno."""
         return self.queue.get()
 
     def send_to(self, data: bytes, target: Address):
@@ -171,9 +171,9 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
     def add_received(self, source: Address, id: int):
         """
-        Agrega un paquete recibido a la lista de paquetes recibidos. Se mantiene una ventana
-        de paquetes recibidos para unicamente llevar un registro de los ultimos paquetes
-        recibidos."""
+        Agrega un paquete recibido a la lista de paquetes recibidos.
+        Se mantiene una ventana de paquetes recibidos para unicamente
+        llevar un registro de los ultimos paquetes recibidos."""
 
         if len(self.get_received(source)) <= id % WINDOW_SIZE:
             self.get_received(source).append(id)

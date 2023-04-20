@@ -5,7 +5,7 @@ from typing import Tuple
 Address = Tuple[str, int]
 
 TIMER_DURATION = 0.1
-BUFSIZE = 4096
+BUFSIZE: int = 4096
 
 
 class ReliableTransportProtocol(ABC):
@@ -33,8 +33,8 @@ class ReliableTransportProtocol(ABC):
     @abstractmethod
     def recv_from() -> Tuple[bytes, Address]:
         """
-        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles, se bloquea
-        hasta que se reciba uno."""
+        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles,
+        se bloquea hasta que se reciba uno."""
         pass
 
 

@@ -39,8 +39,8 @@ class StopAndWaitProtocol(ReliableTransportProtocol):
 
     def recv_from(self) -> Tuple[bytes, Address]:
         """
-        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles, se bloquea
-        hasta que se reciba uno."""
+        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles,
+        se bloquea hasta que se reciba uno."""
         return self.queue.get()
 
     def send_to(self, data: bytes, target: Address):
