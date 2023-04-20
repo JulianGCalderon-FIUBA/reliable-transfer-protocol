@@ -83,7 +83,7 @@ class StopAndWaitConnection(ConnectionRFTP):
         self.transport.send_ack(packet, address)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:
-            
+            print("Recieved", packet.block)
             packet, address = self.transport.recvfrom();
             self.transport.send_ack(packet, address)
             self.segmenter.add_segment(packet)
@@ -106,6 +106,7 @@ class StopAndWaitConnection(ConnectionRFTP):
         self.segmenter.segment(data)
         segment = self.segmenter.get_next()
         while segment != None:
+            print("Sending: ", segment.block)
             answer, address = self.transport.sendto(segment, address)
             
             #Checkear que pasa si devuelve error o algo asi
@@ -114,6 +115,7 @@ class StopAndWaitConnection(ConnectionRFTP):
 
     def send_handshake(self, packet: 'Packet', address: tuple[str, int]):
         self.transport.sendto(packet, address)
+        print("Handshaked")
 
 
 

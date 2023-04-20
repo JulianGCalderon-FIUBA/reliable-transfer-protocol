@@ -38,6 +38,7 @@ def main(arguments):
     connection.respond_handshake(from_where)
     
     file = connection.recieve_from()
+    print("Termine")
     print(file.decode())
 
 

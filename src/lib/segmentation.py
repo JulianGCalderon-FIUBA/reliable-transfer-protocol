@@ -32,7 +32,8 @@ class Segmenter:
         return segment_bytes
     
     def add_segment(self, data: 'Packet'):
-        
+        if self.window.get(data.block, None) != None:
+            return
         if len(self.window) == self.window_size:
             self.segments = self.segments + list(self.window.values())
             self.window.clear()

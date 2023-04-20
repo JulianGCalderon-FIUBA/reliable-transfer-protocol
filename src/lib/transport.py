@@ -4,6 +4,7 @@ from typing import Self
 from lib.constants import BUFFSIZE, SOCK_CONSTS
 from lib.exceptions import IncorrectAnswerException
 from lib.packet import AckPacket, Packet
+from random import random
 
 class Transport(ABC):
     
@@ -55,18 +56,19 @@ class StopAndWait(Transport):
     
     def sendto(self, data: 'Packet', address: tuple[str, int]) -> tuple['Packet', tuple[str, int]]:
         
-        encoded_data = data.encode()
-        sent = 0
-        while sent < len(encoded_data):
-            sent += self.socket.sendto(encoded_data, address)
-            encoded_data = encoded_data[:sent]
-
+        if random() > 0.4:
+            encoded_data = data.encode()
+            sent = 0
+            while sent < len(encoded_data):
+                sent += self.socket.sendto(encoded_data, address)
+                encoded_data = encoded_data[:sent]
+        else:
+            print("Failed")
         try:
             return self.wait_for_answer(data)
-            
         except TimeoutError:
             #Por ahora lo dejo como para que trate de mandarlo ad infinitum
-            self.sendto(data, address)
+            return self.sendto(data, address)
         except IncorrectAnswerException:
             #Puede ser un error, o no estar en orden. Checkear a futuro
             raise IncorrectAnswerException(data)
