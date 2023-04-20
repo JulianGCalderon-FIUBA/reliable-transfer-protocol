@@ -12,7 +12,7 @@ SERVER_BUFF_SIZE = 512
 parser = argparse.ArgumentParser(
     prog="server RFTP",
     description="RFTP server",
-    usage="start-server [-h] [-v | -q] [-H ADDR] [-p PORT] [-s DIRPATH]"
+    usage="start-server [-h] [-v | -q] [-H ADDR] [-p PORT] [-s DIRPATH]",
 )
 
 parser.add_argument("-v", "--verbose", action="store_true", help="increase output verbosity") #Si se quiere que el server sea o no verboso
@@ -42,6 +42,7 @@ def main(arguments):
     file = connection.recieve_file()
     print("Termine")
     print(file.decode())
+
 
 
 if __name__ == "__main__":

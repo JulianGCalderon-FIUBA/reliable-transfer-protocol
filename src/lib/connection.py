@@ -26,7 +26,8 @@ class ConnectionRFTP(ABC):
     Espera por una nueva conexion y devuelve otra
     """
     def listen(self) -> tuple['Packet', Address]:
-        return self.socket.recv_from()
+        packet, address = self.socket.recv_from()
+        return Packet.decode(packet), address
 
     """
     Cierra el socket
@@ -38,11 +39,11 @@ class ConnectionRFTP(ABC):
     Envia los datos definidos en data a traves de la conexion
     """
     
-    def sendto(self, data: any, address: Address) -> None:
+    def sendto(self, data, address: Address) -> None:
         self.segmenter.segment(data)
         packet = self.segmenter.get_next()
         while packet != None:
-            print("Sending: ", packet, packet.block)
+            #print("Sending: ", packet, packet.block)
             self.socket.send_to(packet.encode(), address)
             packet = self.segmenter.get_next()
 
@@ -89,7 +90,7 @@ class ConnectionRFTP(ABC):
         packet = Packet.decode(packet)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:
-            print("Recieved", packet.block)
+            #print("Recieved", packet.block)
             packet, address = self.recieve_from();
             packet = Packet.decode(packet)
             
