@@ -13,17 +13,21 @@ from lib.transport.transport import (
     ReliableTransportServerProtocol,
 )
 
-WINDOW_SIZE = 10
+WINDOW_SIZE = 30
 
 """
 IMPORTANTE:
-- Actualmente no se esta utilizando el window size. Se debe limitar la cantidad
-    de paquetes que se pueden enviar sin recibir un acknowledgment.
 - EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
     idealmente los packets deberian poder ser segmentados en caso de que sean
     demasiado grandes.
 - La duracion del timer esta hardcodeada en 0.1 segundos. Este valor es arbitrario
     y se podria cambiar.
+- Para limitar la cantidad de paquetes que se pueden enviar sin recibir un
+    acknowledgment, se utiliza un while loop en el metodo send_to. Esto es
+    ineficiente, ya que se pierde procesamiento. Deberia cambiarse por algun tipo
+    sincronización
+- El protocolo NO ES thread safe. (inclusive la implementación puede fallar bajo
+    ciertas condiciones)
 """
 
 
@@ -66,6 +70,11 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         Envia un paquete de datos al destinatario especificado."""
 
         data_packet = DataPacket(self.get_next_seq(target), data)
+
+        # CAMBIAR
+        while len(self.get_timers(target).keys()) >= WINDOW_SIZE:
+            continue
+        # CAMBIAR
 
         self.send_data_packet(data_packet, target)
 
@@ -162,12 +171,15 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         """
         Si hay paquetes en el buffer que pueden ser encolados, los encola"""
 
-        for packet in self.get_buffered(source):
+        self.get_buffered(source).sort(key=lambda packet: packet.sequence, reverse=True)
+
+        for i in range(len(self.get_buffered(source)) - 1, -1, -1):
+            packet = self.get_buffered(source)[i]
+
             if self.get_expected_seq(source) == packet.sequence:
-                self.get_buffered(source).remove(packet)
+                self.get_buffered(source).pop(i)
                 self.queue.put((packet.data, source))
                 self.increase_expected_seq(source)
-                return self.queue_buffered_packets(source)
 
     def add_received(self, source: Address, id: int):
         """

@@ -18,7 +18,7 @@ class ReliableTransportProtocol(ABC):
     Es un protocolo connectionless, por lo que no se establece una conexion
     entre el cliente y el servidor. Cada paquete de datos enviado debe
     contener la direccion del destinatario. Cada paquete de datos recibido
-    debe contener la direccion del remitente.
+    contiene la direccion del remitente.
     """
 
     def __init__(self):
