@@ -3,7 +3,7 @@ import argparse
 import socket
 
 from lib.connection import ConnectionRFTP
-from lib.packet import AckFPacket
+from lib.packet import AckFPacket, DataFPacket
 from lib.transport.selective_repeat import SelectiveRepeatServerProtocol
 
 LOCALHOST = "127.0.0.1"
@@ -26,7 +26,7 @@ def handle_client(client_sckt):
     while True:
         mensaje, direccion = client_sckt.recvfrom(SERVER_BUFF_SIZE)
         data = DataFPacket.decode(mensaje)
-        if not len(data):
+        if not len(data.data):
             break
         print(f"Llego: {DataFPacket.decode(mensaje)} de: {direccion}")
     sock.close()

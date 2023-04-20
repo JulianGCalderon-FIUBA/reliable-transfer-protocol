@@ -10,7 +10,7 @@ class Packet(ABC):
     Crea cada tipo de paquete particular manualmente a partir de los campos especificos
     """
     @abstractmethod
-    def __init__() -> Self:
+    def __init__():
         pass
     
     """
@@ -75,7 +75,7 @@ def read_field(stream: bytes) -> tuple[bytes, int]:
 
 
 class WriteRequestPacket(Packet):
-    def __init__(self, name) -> Self:
+    def __init__(self, name):
         self.opcode: int = OPCODES.WRQ
         self.name: str = name
         
@@ -99,7 +99,7 @@ class WriteRequestPacket(Packet):
         return other.block == 0
 
 class ReadRequestPacket(Packet):
-    def __init__(self, name) -> Self:
+    def __init__(self, name):
         self.opcode: int = OPCODES.RRQ
         self.name: str = name
 
@@ -121,7 +121,7 @@ class ReadRequestPacket(Packet):
         return other.block == 0
 
 class DataFPacket(Packet):
-    def __init__(self, block: int, data: bytes) -> Self:
+    def __init__(self, block: int, data: str):
         self.opcode: int = OPCODES.DATA
         self.block = block
         self.data: str = data
@@ -144,7 +144,7 @@ class DataFPacket(Packet):
         return isinstance(other, AckFPacket) and other.block == self.block
 
 class AckFPacket(Packet):
-    def __init__(self, block_number: int) -> Self:
+    def __init__(self, block_number: int):
         self.opcode: int = OPCODES.ACK
         self.block: int = block_number
     
@@ -163,7 +163,7 @@ class AckFPacket(Packet):
         return isinstance(other, DataFPacket) and other.block == self.block + 1
 
 class ErrorPacket(Packet):
-    def __init__(self, error_code: int) -> Self:
+    def __init__(self, error_code: int):
         self.opcode: int = OPCODES.ERROR
         self.error_code: int = error_code
 
