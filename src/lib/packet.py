@@ -52,9 +52,9 @@ def class_for_opcode(opcode: int) -> type:
         case OPCODES.WRQ:
             return WriteRequestPacket
         case OPCODES.DATA:
-            return DataPacket
+            return DataFPacket
         case OPCODES.ACK:
-            return AckPacket
+            return AckFPacket
         case OPCODES.ERROR:
             return ErrorPacket
         case _:
@@ -92,7 +92,7 @@ class WriteRequestPacket(Packet):
                 + END.to_bytes(1, ENDIAN))
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        if not isinstance(other, AckPacket) :
+        if not isinstance(other, AckFPacket) :
             
             return False
         
@@ -115,12 +115,12 @@ class ReadRequestPacket(Packet):
                 + END.to_bytes(1, ENDIAN))
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        if not isinstance(other, AckPacket):
+        if not isinstance(other, AckFPacket):
             return False
         
         return other.block == 0
 
-class DataPacket(Packet):
+class DataFPacket(Packet):
     def __init__(self, block: int, data: bytes) -> Self:
         self.opcode: int = OPCODES.DATA
         self.block = block
@@ -141,9 +141,9 @@ class DataPacket(Packet):
                 + self.data.encode())
     
     def is_expected_answer(self, other: 'Packet') -> bool:
-        return isinstance(other, AckPacket) and other.block == self.block
+        return isinstance(other, AckFPacket) and other.block == self.block
 
-class AckPacket(Packet):
+class AckFPacket(Packet):
     def __init__(self, block_number: int) -> Self:
         self.opcode: int = OPCODES.ACK
         self.block: int = block_number
@@ -160,7 +160,7 @@ class AckPacket(Packet):
     
     def is_expected_answer(self, other: 'Packet') -> bool:
         #Esto va a haber que checkearlo, por que el block se puede dar vuelta (volver a 1)
-        return isinstance(other, DataPacket) and other.block == self.block + 1
+        return isinstance(other, DataFPacket) and other.block == self.block + 1
 
 class ErrorPacket(Packet):
     def __init__(self, error_code: int) -> Self:

@@ -70,7 +70,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
     def on_ack_packet(self, packet, address):
         try:
-            self.get_timers(address).pop(packet.id).cancel()
+            self.get_timers(address).pop(packet.sequence).cancel()
         except KeyError:
             pass
 
@@ -78,14 +78,14 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         if packet.length != len(packet.data):
             return
 
-        self.socket.sendto(AckPacket(packet.id).encode(), address)
+        self.socket.sendto(AckPacket(packet.sequence).encode(), address)
 
-        if packet.id in self.get_received(address):
+        if packet.sequence in self.get_received(address):
             return
 
-        self.add_received(address, packet.id)
+        self.add_received(address, packet.sequence)
 
-        if self.is_expected_seq(address, packet.id):
+        if self.is_expected_seq(address, packet.sequence):
             self.queue.put((packet.data, address))
             self.increase_expected_seq(address)
             self.queue_buffered_packets(address)

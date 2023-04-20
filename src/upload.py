@@ -1,7 +1,8 @@
 import argparse
 from argparse import ArgumentParser
-from lib.connection import StopAndWaitConnection
-from lib.packet import DataPacket, WriteRequestPacket
+from lib.connection import ConnectionRFTP
+from lib.packet import DataFPacket, WriteRequestPacket
+from lib.transport.selective_repeat import SelectiveRepeatClientProtocol
 
 SERVER_BUFF_SIZE = 512
 
@@ -30,11 +31,14 @@ def main(arguments):
     # receive answer in bound port
     # get host ephemeral port from answer
     print(arguments.name)
-    connection = StopAndWaitConnection(arguments.host, 9999)
-    connection.send_handshake(WriteRequestPacket(arguments.src), (arguments.host, arguments.port))
+    
+    
+    connection = SelectiveRepeatClientProtocol(("", 10000))
+    connection = ConnectionRFTP(connection)
+    _answer, address = connection.send_handshake(WriteRequestPacket(arguments.src), (arguments.host, arguments.port))
     with open(arguments.src) as upload_file:
         data = upload_file.read(-1)
-        connection.sendto(data, (arguments.host, arguments.port))
+        connection.sendto(data, address)
 
 
 if __name__ == "__main__":

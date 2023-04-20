@@ -6,49 +6,69 @@ from abc import ABC, abstractmethod
 from typing import Self
 from lib.constants import DATASIZE, WILDCARD_ADDRESS
 from lib.segmentation import Segmenter
-from lib.transport import StopAndWait
-from lib.packet import AckPacket, Packet, ReadRequestPacket, WriteRequestPacket, DataPacket
+from lib.packet import AckFPacket, Packet, ReadRequestPacket, WriteRequestPacket
 import socket
+
+from lib.transport.transport import Address, ReliableTransportProtocol
+from lib.transport.selective_repeat import SelectiveRepeatProtocol
 
 class SocketNotBindedException(Exception):
     pass
 
 class ConnectionRFTP(ABC): 
 
-    
+    def __init__(self, socket: ReliableTransportProtocol):
+        self.socket = socket
+        self.segmenter = Segmenter()
+        
     
     """
     Espera por una nueva conexion y devuelve otra
     """
-    @abstractmethod
-    def listen(self) -> tuple['Packet', Self]:
-        pass
+    def listen(self) -> tuple['Packet', Address]:
+        return self.socket.recv_from()
 
     """
     Cierra el socket
     """
-    @abstractmethod
     def close(self) -> None:
         pass
 
     """
     Envia los datos definidos en data a traves de la conexion
     """
-    @abstractmethod
-    def sendto(self, data: any, address: tuple[str, int]) -> None:
-        pass
     
+    def sendto(self, data: any, address: Address) -> None:
+        self.segmenter.segment(data)
+        packet = self.segmenter.get_next()
+        while packet != None:
+            print("Sending: ", packet, packet.block)
+            self.socket.send_to(packet.encode(), address)
+            packet = self.segmenter.get_next()
+
     """
     Intenta recuperar un paquete de la conexion y la direccion de la cual lo recupero
     """
-    @abstractmethod
-    def recieve_from(self) -> bytes: #como string de bytes
-        pass
+    def recieve_from(self) -> tuple[bytes, Address]: #como string de bytes
+        return self.socket.recv_from()
     
-    @abstractmethod
-    def send_handshake(self, packet: 'Packet', address: tuple[str, int]):
-        pass
 
+    def send_handshake(self, packet: 'Packet', address: tuple[str, int]):
+        self.socket.send_to(packet.encode(), address)
+        answer, address = self.recieve_from()
+        answer = Packet.decode(answer)
+        if packet.is_expected_answer(answer):
+            print("Handshaked")
+            return answer, address
+        else:
+            print(answer)
+            raise Exception("Invalid handshake") #Agregar error aca
+
+    def answer_handshake(self, address: Address, ok=True):
+        if ok:
+            self.socket.send_to(AckFPacket(0).encode(), address)
+        else:
+            return
     """
     Inicia un upload de datos
     """
@@ -61,68 +81,21 @@ class ConnectionRFTP(ABC):
     """
     def download(self, filename: str, address: tuple[str, int]) -> bytes:
         self.send_handshake(ReadRequestPacket(filename), address)
-        return self.recieve_from()
-        
-
-
-
-class StopAndWaitConnection(ConnectionRFTP):
-
-    def __init__(self, ip: str, port: int) -> Self:
-        
-        sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sckt.bind((ip, port))
-        self.transport = StopAndWait(sckt, port, ip)
-        self.segmenter = Segmenter(1)
-
-    def recieve_from(self) -> bytes:
-        
-        packet, address = self.transport.recvfrom();
-        
+        return self.recieve_file()
+    
+    def recieve_file(self) -> bytes:
+        packet, address = self.recieve_from();
         #Chekear que sea de data
-        self.transport.send_ack(packet, address)
+        packet = Packet.decode(packet)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:
             print("Recieved", packet.block)
-            packet, address = self.transport.recvfrom();
-            self.transport.send_ack(packet, address)
-            self.segmenter.add_segment(packet)
-
-        return self.segmenter.desegment()
-        
-
-    def listen(self) -> tuple['Packet', tuple[str, int]]:
-        paquete, direccion = self.transport.recvfrom()
-        
-        return paquete, direccion
-    def respond_handshake(self, address, status=True):
-        self.transport.send_ack(DataPacket(0, ''), address)
-
-    def close(self) -> None:
-        self.transport.close()
-        del self
-
-    def sendto(self, data: bytes, address: tuple[str, int]) -> None:
-        self.segmenter.segment(data)
-        segment = self.segmenter.get_next()
-        while segment != None:
-            print("Sending: ", segment.block)
-            answer, address = self.transport.sendto(segment, address)
+            packet, address = self.recieve_from();
+            packet = Packet.decode(packet)
             
-            #Checkear que pasa si devuelve error o algo asi
-            self.segmenter.remove_from_ack(answer)
-            segment = self.segmenter.get_next()
-
-    def send_handshake(self, packet: 'Packet', address: tuple[str, int]):
-        self.transport.sendto(packet, address)
-        print("Handshaked")
-
-
-
-
-class SelectiveRepeatConnection(ConnectionRFTP):
-    pass
-
+            self.segmenter.add_segment(packet)
+        print("Going out")
+        return self.segmenter.desegment()
 
 def bind_ephemeral_port(client_socket):
     client_socket.bind((WILDCARD_ADDRESS, 4567)) # the port here should be chosen at random

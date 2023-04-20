@@ -2,7 +2,9 @@ import threading
 import argparse
 import socket
 
-from lib.connection import StopAndWaitConnection
+from lib.connection import ConnectionRFTP
+from lib.packet import AckFPacket
+from lib.transport.selective_repeat import SelectiveRepeatServerProtocol
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
@@ -23,20 +25,21 @@ parser.add_argument("-s", "--storage", default=".", type=str, help="storage dir 
 def handle_client(client_sckt):
     while True:
         mensaje, direccion = client_sckt.recvfrom(SERVER_BUFF_SIZE)
-        data = DataPacket.decode(mensaje)
+        data = DataFPacket.decode(mensaje)
         if not len(data):
             break
-        print(f"Llego: {DataPacket.decode(mensaje)} de: {direccion}")
+        print(f"Llego: {DataFPacket.decode(mensaje)} de: {direccion}")
     sock.close()
 
 
 def main(arguments):
-    connection = StopAndWaitConnection("", 10000)
-    upload, from_where = connection.listen()
+    connection = SelectiveRepeatServerProtocol(("", 10000))
+    connection = ConnectionRFTP(connection)
     
-    connection.respond_handshake(from_where)
+    handshake, from_where = connection.listen()
+    connection.answer_handshake(from_where)
     
-    file = connection.recieve_from()
+    file = connection.recieve_file()
     print("Termine")
     print(file.decode())
 

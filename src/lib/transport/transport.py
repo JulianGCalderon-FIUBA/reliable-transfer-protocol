@@ -10,11 +10,11 @@ class ReliableTransportProtocol(ABC):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     @abstractmethod
-    def send_to(data: bytes, address: Address):
+    def send_to(self, data: bytes, address: Address):
         pass
 
     @abstractmethod
-    def recv_from() -> Tuple[bytes, Address]:
+    def recv_from(self) -> Tuple[bytes, Address]:
         pass
 
 
@@ -27,7 +27,7 @@ class ReliableTransportClientProtocol(ReliableTransportProtocol):
         self.send_to(data, self.target)
 
     def recv(self) -> bytes:
-        self.recv_from()[0]
+        return self.recv_from()[0]
 
     def set_target(self, target):
         self.target = target
