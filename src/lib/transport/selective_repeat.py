@@ -162,12 +162,15 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         """
         Si hay paquetes en el buffer que pueden ser encolados, los encola"""
 
-        for packet in self.get_buffered(source):
+        self.get_buffered(source).sort(key=lambda packet: packet.sequence, reverse=True)
+
+        for i in range(len(self.get_buffered(source)) - 1, -1, -1):
+            packet = self.get_buffered(source)[i]
+
             if self.get_expected_seq(source) == packet.sequence:
-                self.get_buffered(source).remove(packet)
+                self.get_buffered(source).pop(i)
                 self.queue.put((packet.data, source))
                 self.increase_expected_seq(source)
-                return self.queue_buffered_packets(source)
 
     def add_received(self, source: Address, id: int):
         """
