@@ -71,11 +71,10 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
         data_packet = DataPacket(self.get_next_seq(target), data)
 
+        # CAMBIAR
         while len(self.get_timers(target).keys()) >= WINDOW_SIZE:
-            print("Waiting for unaknowledge packets...")
             continue
-
-        print(f"Unaknowledge packets: {len(self.get_timers(target).keys())}")
+        # CAMBIAR
 
         self.send_data_packet(data_packet, target)
 
