@@ -13,7 +13,7 @@ from lib.transport.transport import (
     ReliableTransportServerProtocol,
 )
 
-WINDOW_SIZE = 10
+WINDOW_SIZE = 30
 
 """
 IMPORTANTE:
@@ -24,6 +24,10 @@ IMPORTANTE:
     demasiado grandes.
 - La duracion del timer esta hardcodeada en 0.1 segundos. Este valor es arbitrario
     y se podria cambiar.
+- Para limitar la cantidad de paquetes que se pueden enviar sin recibir un
+    acknowledgment, se utiliza un while loop en el metodo send_to. Esto es
+    ineficiente, ya que se pierde procesamiento. Deberia cambiarse por algun tipo
+    sincronización
 """
 
 
@@ -66,6 +70,12 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         Envia un paquete de datos al destinatario especificado."""
 
         data_packet = DataPacket(self.get_next_seq(target), data)
+
+        while len(self.get_timers(target).keys()) >= WINDOW_SIZE:
+            print("Waiting for unaknowledge packets...")
+            continue
+
+        print(f"Unaknowledge packets: {len(self.get_timers(target).keys())}")
 
         self.send_data_packet(data_packet, target)
 
