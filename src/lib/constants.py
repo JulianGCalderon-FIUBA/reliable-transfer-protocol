@@ -36,11 +36,11 @@ OPCODES.ERROR = 5
 END = 0x0
 MIN_HOST_AMOUNT = 2
 LINK_LOSS = 10
-ENDIAN = 'big'
+ENDIAN = "big"
 DATASIZE = 512
 BUFFSIZE = 600
-MAX_BLOCK_NUMBER = 0xff
+MAX_BLOCK_NUMBER = 0xFF
 
-SOCK_CONSTS.BUFFSIZE = 600 #Esto habria que mirarlo mejor despues
-SOCK_CONSTS.BASE_TIMEOUT = 1.0 #Un segundo de timeout de base
-SOCK_CONSTS.MAX_HANDSHAKE_RETRIES = 3 #Tratamos hasta 3 veces de rehacer una conexion
+SOCK_CONSTS.BUFFSIZE = 600  # Esto habria que mirarlo mejor despues
+SOCK_CONSTS.BASE_TIMEOUT = 1.0  # Un segundo de timeout de base
+SOCK_CONSTS.MAX_HANDSHAKE_RETRIES = 3  # Tratamos hasta 3 veces de rehacer una conexion
