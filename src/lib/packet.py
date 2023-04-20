@@ -205,6 +205,25 @@ class ErrorPacket(Packet):
         # Devuelve False, no encontre que tenga un ACK, pero deberia
         # La RFC marca que funciona como ACK para cualquier tipo de paquete.
         return False
+    
+    @classmethod
+    def from_exception(cls, exception: Exception) -> 'ErrorPacket':
+        if isinstance(exception, UnorderedPacket):
+            return cls(ERRORCODES.UNORDERED)
+        
+        if isinstance(exception, FileExists):
+            return cls(ERRORCODES.FILEEXISTS)
+        
+        if isinstance(exception, FilenNotExists):
+            return cls(ERRORCODES.FILENOTEXISTS)
+        
+        if isinstance(exception, FailedHandshake):
+            return cls(ERRORCODES.FAILEDHANDSHAKE)
+        
+        if isinstance(exception, InvalidPacket):
+            return cls(ERRORCODES.INVALIDPACKET)
+        
+        return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:
         match self.error_code:

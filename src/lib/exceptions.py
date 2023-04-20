@@ -1,11 +1,5 @@
-from lib.constants import ERRORCODES
-from lib.packet import Packet, ErrorPacket
-
-
 class ErrorPacketException(Exception):
-    
-    def to_error_packet(self) -> 'Packet':  # type: ignore
-        pass
+    pass
 
 
 class FailedHandshake(ErrorPacketException):
@@ -15,36 +9,24 @@ class FailedHandshake(ErrorPacketException):
 
     def __str__(self) -> str:
         return self.reason
-    
-    def to_error_packet(self) -> Packet:
-        return ErrorPacket(ERRORCODES.FAILEDHANDSHAKE)
 
 
 class FileExists(ErrorPacketException):
-    
+
     def __str__(self) -> str:
         return "Filename already exists"
-    
-    def to_error_packet(self) -> Packet:
-        return ErrorPacket(ERRORCODES.FILEEXISTS)
 
 
 class InvalidPacket(ErrorPacketException):
 
     def __str__(self) -> str:
         return "Recieved an invalid packet"
-    
-    def to_error_packet(self) -> Packet:
-        return ErrorPacket(ERRORCODES.INVALIDPACKET)
 
 
 class FilenNotExists(ErrorPacketException):
-    
+
     def __str__(self) -> str:
         return "Filename does not exist"
-    
-    def to_error_packet(self) -> Packet:
-        return ErrorPacket(ERRORCODES.FILENOTEXISTS)
 
 
 class UnorderedPacket(ErrorPacketException):
@@ -59,9 +41,6 @@ class UnorderedPacket(ErrorPacketException):
         error_string = \
             f'Expected block number {self.expected} \
                 but recieved {self.recieved} instead'
-        
+
         return error_string
-    
-    def to_error_packet(self) -> Packet:
-        return ErrorPacket(ERRORCODES.UNORDERED)
-    
+
