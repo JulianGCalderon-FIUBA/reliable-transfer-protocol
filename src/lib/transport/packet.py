@@ -3,6 +3,12 @@ from enum import IntEnum, auto
 
 ENDIAN = "big"
 
+SEQUENCE_BYTES = 2
+LENGTH_BYTES = 2
+
+MAX_SEQUENCE = 2 ^ 16 - 1
+MAX_LENGTH = 2 ^ 16 - 1
+
 
 class CODES(IntEnum):
     ACK = auto()
@@ -28,8 +34,8 @@ class Packet(ABC):
 
 
 class AckPacket(Packet):
-    def __init__(self, id: int):
-        self.id = id
+    def __init__(self, sequence: int):
+        self.sequence = sequence
 
     @classmethod
     def opcode(cls) -> int:
@@ -42,12 +48,13 @@ class AckPacket(Packet):
         return cls(id)
 
     def encode(self) -> bytes:
-        return super().encode() + self.id.to_bytes(2, ENDIAN)
+        return super().encode() + self.sequence.to_bytes(2, ENDIAN)
 
 
 class DataPacket(Packet):
-    def __init__(self, id: int, data: bytes):
-        self.id = id
+    def __init__(self, sequence: int, data: bytes):
+        self.sequence = sequence
+        self.length = len(data)
         self.data = data
 
     @classmethod
@@ -57,9 +64,18 @@ class DataPacket(Packet):
     @classmethod
     def decode(cls, stream: bytes):
         id = int.from_bytes(stream[:2], ENDIAN)
-        data = stream[2:]
+        length = int.from_bytes(stream[2:4], ENDIAN)
+        data = stream[4:]
 
-        return cls(id, data)
+        packet = cls(id, data)
+        packet.length = length
+
+        return packet
 
     def encode(self) -> bytes:
-        return super().encode() + self.id.to_bytes(2, ENDIAN) + self.data
+        return (
+            super().encode()
+            + self.sequence.to_bytes(2, ENDIAN)
+            + self.length.to_bytes(2, ENDIAN)
+            + self.data
+        )

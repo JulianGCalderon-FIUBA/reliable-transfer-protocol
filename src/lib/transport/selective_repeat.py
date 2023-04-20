@@ -3,7 +3,7 @@ from random import random
 import threading
 from typing import Tuple, Dict, List
 
-from lib.transport.packet import AckPacket, DataPacket, Packet
+from lib.transport.packet import MAX_SEQUENCE, AckPacket, DataPacket, Packet
 from lib.transport.transport import (
     Address,
     ReliableTransportClientProtocol,
@@ -14,12 +14,11 @@ from lib.transport.transport import (
 BUFSIZE = 4096
 TIMER_DURATION = 0.1
 WINDOW_SIZE = 10
-SEQUENCE_NUMBER_LIMIT = 32767
 
 
 class SelectiveRepeatProtocol(ReliableTransportProtocol):
     queue = Queue()
-    next_seq: Dict[Address, int] = {}
+    next_sequence: Dict[Address, int] = {}
     received: Dict[Address, List[int]] = {}
     timers: Dict[Address, Dict[int, threading.Timer]] = {}
     buffered: Dict[Address, List[(DataPacket)]] = {}
@@ -51,7 +50,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
             TIMER_DURATION, lambda: self.send_data_packet(packet, target)
         )
         timer.start()
-        self.get_timers(target)[packet.id] = timer
+        self.get_timers(target)[packet.sequence] = timer
 
     def read_thread(self):
         while True:
@@ -76,6 +75,9 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
             pass
 
     def on_data_packet(self, packet, address):
+        if packet.length != len(packet.data):
+            return
+
         self.socket.sendto(AckPacket(packet.id).encode(), address)
 
         if packet.id in self.get_received(address):
@@ -92,7 +94,7 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
 
     def queue_buffered_packets(self, target: Address):
         for packet in self.get_buffered(target):
-            if self.is_expected_seq(target, packet.id):
+            if self.is_expected_seq(target, packet.sequence):
                 self.get_buffered(target).remove(packet)
                 self.queue.put((packet.data, target))
                 self.increase_expected_seq(target)
@@ -117,20 +119,19 @@ class SelectiveRepeatProtocol(ReliableTransportProtocol):
         return self.expected_seq.setdefault(address, 0) == id
 
     def get_seq(self, address: Address) -> int:
-        return self.next_seq.setdefault(address, 0)
+        return self.next_sequence.setdefault(address, 0)
 
     def increase_next_seq(self, address: Address):
-        self.next_seq[address] = self.wrapped_increase(self.next_seq[address])
+        self.next_sequence[address] = self.wrapped_increase(self.next_sequence[address])
 
     def increase_expected_seq(self, address: Address):
         self.expected_seq[address] = self.wrapped_increase(self.expected_seq[address])
 
     def wrapped_increase(self, number: int) -> int:
-        number += 1
-        if number == SEQUENCE_NUMBER_LIMIT:
-            number = 0
+        if number == MAX_SEQUENCE:
+            return 0
 
-        return number
+        return number + 1
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.queue.get()
