@@ -26,6 +26,8 @@ IMPORTANTE:
     acknowledgment, se utiliza un while loop en el metodo send_to. Esto es
     ineficiente, ya que se pierde procesamiento. Deberia cambiarse por algun tipo
     sincronización
+- El protocolo NO ES thread safe. (inclusive la implementación puede fallar bajo
+    ciertas condiciones)
 """
 
 

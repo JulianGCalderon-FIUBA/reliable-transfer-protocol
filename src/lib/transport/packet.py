@@ -67,7 +67,7 @@ class AckPacket(Packet):
         return CODES.ACK
 
     @classmethod
-    def decode(cls, stream: bytes):
+    def decode(cls, stream: bytes) -> "AckPacket":
         id = int.from_bytes(stream[:2], ENDIAN)
 
         return cls(id)
@@ -94,7 +94,7 @@ class DataPacket(Packet):
         return CODES.DATA
 
     @classmethod
-    def decode(cls, stream: bytes):
+    def decode(cls, stream: bytes) -> "DataPacket":
         id = int.from_bytes(stream[:2], ENDIAN)
         length = int.from_bytes(stream[2:4], ENDIAN)
         data = stream[4:]
