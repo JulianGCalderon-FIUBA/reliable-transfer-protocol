@@ -17,8 +17,6 @@ WINDOW_SIZE = 30
 
 """
 IMPORTANTE:
-- Actualmente no se esta utilizando el window size. Se debe limitar la cantidad
-    de paquetes que se pueden enviar sin recibir un acknowledgment.
 - EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
     idealmente los packets deberian poder ser segmentados en caso de que sean
     demasiado grandes.
