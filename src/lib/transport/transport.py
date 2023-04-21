@@ -1,65 +1,144 @@
-from abc import ABC, abstractmethod
-import socket
-from typing import Tuple
+from queue import Queue
+from random import random
+import threading
+from typing import Tuple, Dict
+import socket as skt
+from lib.transport.consts import BUFSIZE, Address
 
-Address = Tuple[str, int]
+from lib.transport.stream import ReliableStream
 
-TIMER_DURATION = 0.1
-BUFSIZE: int = 4096
+"""
+IMPORTANTE:
+- EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
+    idealmente los packets deberian poder ser segmentados en caso de que sean
+    demasiado grandes.
+- La implementación del stop and wait es un selective repeat, usando un
+    window size de 1.
+"""
 
 
-class ReliableTransportProtocol(ABC):
+class ReliableTransportProtocol:
     """
-    Clase base para un protocolo de transporte confiable.
+    Esta clase implementa envio de datos de forma confiable y en orden
+    a traves de un socket UDP.
 
-    Este protocolo es capaz de enviar y recibir paquetes de datos de forma
-    confiable y en orden.
-
-    Es un protocolo connectionless, por lo que no se establece una conexion
-    entre el cliente y el servidor. Cada paquete de datos enviado debe
-    contener la direccion del destinatario. Cada paquete de datos recibido
-    contiene la direccion del remitente.
-    """
+    La implementacion es connectionless, por lo que se debe indicar
+    explicitamente el destinatario de cada paquete. Ademas, cada paquete
+    recibido incluye la direccion del emisor."""
 
     def __init__(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
 
-    @abstractmethod
-    def send_to(self, data: bytes, address: Address):
+        self.recv_queue = Queue()
+        self.streams: Dict[Address, ReliableStream] = {}
+
+        self._spawn_reader()
+
+    def recv_from(self) -> Tuple[bytes, Address]:
         """
-        Envía un paquete de datos al destinatario especificado."""
-        pass
+        Recibe un paquete de datos de cualquier origen. Si aun no se ha
+        recibido ningun paquete, se bloquea hasta que se reciba uno."""
 
-    @abstractmethod
-    def recv_from() -> Tuple[bytes, Address]:
+        return self.recv_queue.get()
+
+    def send_to(self, data: bytes, target: Address):
         """
-        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles,
-        se bloquea hasta que se reciba uno."""
-        pass
+        Envía un paquete de datos al destinatario especificado. Si
+        aun no se ha recibido ningun paquete, se bloquea hasta que se
+        reciba uno."""
+
+        self._stream_for_address(target).send(data)
+
+    def _spawn_reader(self):
+        """
+        Crea un thread que lee continuamente del socket y procesa los
+        paquetes recibidos."""
+
+        self.thread_handle = threading.Thread(target=self._reader)
+        self.thread_handle.start()
+
+    def _reader(self):
+        """
+        Lee continuamente del socket y procesa los paquetes recibidos."""
+
+        socket = self.socket.dup()
+        while True:
+            data, address = socket.recvfrom(BUFSIZE)
+
+            # MANUAL PACKET LOSS
+            while random() < 0.1:
+                data, address = socket.recvfrom(BUFSIZE)
+            # MANUAL PACKET LOSS
+
+            self._stream_for_address(address).recv(data)
+
+    def _stream_for_address(self, address):
+        """
+        Cada conexion especifica es manejada por un objeto ReliableStream.
+        Esta funcion devuelve el stream correspondiente a la direccion
+        especificada. Si no existe, se crea uno nuevo.
+
+        nota: Al no haber un handshake, es vulnerable a ataques syn flood.
+        """
+
+        if self.streams.get(address):
+            return self.streams[address]
+
+        self.streams[address] = ReliableStream(self.socket, address, self.recv_queue)
+
+        return self._stream_for_address(address)
+
+    def bind(self, address: Address):
+        """
+        Asocia el socket a la direccion especificada."""
+
+        self.socket.bind(address)
 
 
-class ReliableTransportClientProtocol(ReliableTransportProtocol):
+class ReliableTransportClient(ReliableTransportProtocol):
     """
-    Extensión de ReliableTransportProtocol para un cliente. Permite establecer
-    un destino para el envío de paquetes de datos, para que no sea necesario
-    especificar el destino en cada llamada a send."""
+    Implementacion de ReliableTransportProtocol que simplifica el uso
+    de la clase para el caso de un cliente.
 
-    def __init__(self, target):
+    En lugar de tener que especificar el destinatario de cada paquete,
+    se puede enviar y recibir datos directamente (ignorando aquellos
+    paquetes que no provengan del destinatario especificado)."""
+
+    def __init__(self, target: Address):
         super().__init__()
         self.target = target
 
     def send(self, data: bytes):
+        """
+        Envía un paquete de datos al destinatario especificado."""
+
         self.send_to(data, self.target)
 
-    def set_target(self, target):
+    def recv(self) -> bytes:
+        """
+        Recibe un paquete de datos del destinatario especificado. Si
+        aun no se ha recibido ningun paquete, se bloquea hasta que se
+        reciba uno."""
+
+        data, source = self.recv_from()
+        if source == self.target:
+            return data
+
+        return self.recv()
+
+    def set_target(self, target: Address):
+        """
+        Cambia el destinatario de los paquetes."""
+
         self.target = target
 
 
-class ReliableTransportServerProtocol(ReliableTransportProtocol):
+class ReliableTransportServer(ReliableTransportProtocol):
     """
-    Extensión de ReliableTransportProtocol para un servidor. Permite bindear
-    el socket a una dirección y puerto."""
+    Implementacion de ReliableTransportProtocol que simplifica el uso
+    de la clase para el caso de un servidor.
+    Se bindea a una direccion especifica en construccion"""
 
-    def __init__(self, source):
+    def __init__(self, address: Address):
         super().__init__()
-        self.socket.bind(source)
+        self.bind(address)
