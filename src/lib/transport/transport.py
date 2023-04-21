@@ -1,65 +1,77 @@
-from abc import ABC, abstractmethod
-import socket
-from typing import Tuple
+from queue import Queue
+from random import random
+import threading
+from typing import Tuple, Dict
+import socket as skt
+from lib.transport.consts import BUFSIZE, Address
 
-Address = Tuple[str, int]
+from lib.transport.stream import ReliableStream
 
-TIMER_DURATION = 0.1
-BUFSIZE: int = 4096
+"""
+IMPORTANTE:
+- EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
+    idealmente los packets deberian poder ser segmentados en caso de que sean
+    demasiado grandes.
+"""
 
 
-class ReliableTransportProtocol(ABC):
-    """
-    Clase base para un protocolo de transporte confiable.
-
-    Este protocolo es capaz de enviar y recibir paquetes de datos de forma
-    confiable y en orden.
-
-    Es un protocolo connectionless, por lo que no se establece una conexion
-    entre el cliente y el servidor. Cada paquete de datos enviado debe
-    contener la direccion del destinatario. Cada paquete de datos recibido
-    contiene la direccion del remitente.
-    """
-
+class ReliableTransportProtocol:
     def __init__(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
 
-    @abstractmethod
-    def send_to(self, data: bytes, address: Address):
-        """
-        Envía un paquete de datos al destinatario especificado."""
-        pass
+        self.recv_queue = Queue()
+        self.streams: Dict[Address, ReliableStream] = {}
 
-    @abstractmethod
-    def recv_from() -> Tuple[bytes, Address]:
-        """
-        Recibe un paquete de datos de la cola. Si no hay paquetes disponibles,
-        se bloquea hasta que se reciba uno."""
-        pass
+        self.start_read_thread()
+
+    def recv_from(self) -> Tuple[bytes, Address]:
+        return self.recv_queue.get()
+
+    def send_to(self, data: bytes, target: Address):
+        self.stream_for_address(target).send(data)
+
+    def start_read_thread(self):
+        self.thread_handle = threading.Thread(target=self.read_thread)
+        self.thread_handle.start()
+
+    def read_thread(self):
+        socket = self.socket.dup()
+        while True:
+            data, address = socket.recvfrom(BUFSIZE)
+
+            # MANUAL PACKET LOSS
+            while random() < 0.1:
+                data, address = socket.recvfrom(BUFSIZE)
+            # MANUAL PACKET LOSS
+
+            self.stream_for_address(address).recv(data)
+
+    def stream_for_address(self, address):
+        if self.streams.get(address):
+            return self.streams[address]
+
+        self.streams[address] = ReliableStream(self.socket, address, self.recv_queue)
+
+        return self.stream_for_address(address)
 
 
-class ReliableTransportClientProtocol(ReliableTransportProtocol):
-    """
-    Extensión de ReliableTransportProtocol para un cliente. Permite establecer
-    un destino para el envío de paquetes de datos, para que no sea necesario
-    especificar el destino en cada llamada a send."""
-
-    def __init__(self, target):
+class ReliableTransportClient(ReliableTransportProtocol):
+    def __init__(self, target: Address):
         super().__init__()
         self.target = target
 
     def send(self, data: bytes):
         self.send_to(data, self.target)
 
-    def set_target(self, target):
-        self.target = target
+    def recv(self) -> bytes:
+        data, source = self.recv_from()
+        if source == self.target:
+            return data
+
+        return self.recv()
 
 
-class ReliableTransportServerProtocol(ReliableTransportProtocol):
-    """
-    Extensión de ReliableTransportProtocol para un servidor. Permite bindear
-    el socket a una dirección y puerto."""
-
-    def __init__(self, source):
+class ReliableTransportServer(ReliableTransportProtocol):
+    def __init__(self, address: Address):
         super().__init__()
-        self.socket.bind(source)
+        self.socket.bind(address)

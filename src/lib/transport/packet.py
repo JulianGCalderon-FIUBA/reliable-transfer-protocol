@@ -1,13 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum, auto
 
-ENDIAN = "big"
-
-SEQUENCE_BYTES = 2
-LENGTH_BYTES = 2
-
-MAX_SEQUENCE = 65535
-MAX_LENGTH = 65535
+from lib.transport.consts import ENDIAN
 
 
 class CODES(IntEnum):

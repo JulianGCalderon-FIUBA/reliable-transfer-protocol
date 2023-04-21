@@ -1,17 +1,15 @@
 import argparse
-from lib.transport.selective_repeat import SelectiveRepeatServerProtocol
-from lib.transport.stop_and_wait import StopAndWaitServerProtocol
+
+from lib.transport.transport import ReliableTransportServer
 
 parser = argparse.ArgumentParser(prog="EchoServer")
 parser.add_argument("port", type=int)
 args = parser.parse_args()
 
-transportSR = SelectiveRepeatServerProtocol(("0.0.0.0", args.port))
-transportSNW = StopAndWaitServerProtocol(("0.0.0.0", args.port + 1))
+ANY_ADDRESS = "0.0.0.0"
+
+transportSR = ReliableTransportServer((ANY_ADDRESS, args.port))
 
 while True:
     data, target = transportSR.recv_from()
-    print(f"Llego: {data.decode()} de: {target} en Selective Repeat")
-
-    data, target = transportSNW.recv_from()
-    print(f"Llego: {data.decode()} de: {target} en Stop And Wait")
+    print(f"Recibo: {data.decode()} de: {target}")
