@@ -12,6 +12,10 @@ IMPORTANTE:
 - EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
     idealmente los packets deberian poder ser segmentados en caso de que sean
     demasiado grandes.
+- Falta la implementación de stop and wait. Si encontramos una solución eficiente
+    para limitar el tamaño de la ventana de envio, podemos implementarlo con reducir
+    el tamaño de la ventana a 1.
+- El proocolo es connectionless, por lo que no hay handshake.
 """
 
 
@@ -22,7 +26,7 @@ class ReliableTransportProtocol:
         self.recv_queue = Queue()
         self.streams: Dict[Address, ReliableStream] = {}
 
-        self.start_read_thread()
+        self.spawn_reader()
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.recv_queue.get()
@@ -30,11 +34,11 @@ class ReliableTransportProtocol:
     def send_to(self, data: bytes, target: Address):
         self.stream_for_address(target).send(data)
 
-    def start_read_thread(self):
-        self.thread_handle = threading.Thread(target=self.read_thread)
+    def spawn_reader(self):
+        self.thread_handle = threading.Thread(target=self.reader)
         self.thread_handle.start()
 
-    def read_thread(self):
+    def reader(self):
         socket = self.socket.dup()
         while True:
             data, address = socket.recvfrom(BUFSIZE)
