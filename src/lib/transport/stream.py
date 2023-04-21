@@ -97,7 +97,7 @@ class ReliableStream:
         timer.start()
         self.timers[packet.sequence] = timer
 
-    def recv(self, data: bytes):
+    def handle_packet(self, data: bytes):
         """
         Procesa los datos recibidos de la dirección de la conexión.
         Este debe poder ser decodificado en un Packet, en caso contrario

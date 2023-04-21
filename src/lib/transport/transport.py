@@ -70,7 +70,7 @@ class ReliableTransportProtocol:
                 data, address = socket.recvfrom(BUFSIZE)
             # MANUAL PACKET LOSS
 
-            self._stream_for_address(address).recv(data)
+            self._stream_for_address(address).handle_packet(data)
 
     def _stream_for_address(self, address):
         """
