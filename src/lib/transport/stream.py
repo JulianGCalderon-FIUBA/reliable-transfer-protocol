@@ -2,9 +2,15 @@ from queue import Queue
 from socket import socket
 from threading import Semaphore, Timer
 from typing import Dict
-from lib.transport.consts import SEQUENCE_BYTES, TIMER, WINDOW_SIZE, Address
+from lib.transport.consts import TIMER, WINDOW_SIZE, Address
 
-from lib.transport.packet import AckPacket, DataPacket, Packet
+from lib.transport.packet import (
+    SEQUENCE_BYTES,
+    AckPacket,
+    DataPacket,
+    InvalidPacketException,
+    Packet,
+)
 
 
 class SequenceNumber:
@@ -35,7 +41,7 @@ class ReliableStream:
     Esta clase implementa envio de datos de forma confiable y en orden
     a traves de un socket UDP con un destinatario especifico.
 
-    Debido a que el stream no lee ativamente del socket, es necesario
+    Debido a que el stream no lee activamente del socket, es necesario
     llamar a recv() con los datos recibidos de la dirección de la conexión
     para que el stream pueda procesarlos.
 
@@ -51,7 +57,7 @@ class ReliableStream:
         self.expected = SequenceNumber()
         self.buffer: Dict[int, bytes] = {}
         self.timers: Dict[int, Timer] = {}
-        self.semaphore = Semaphore(WINDOW_SIZE)
+        self.window_semaphore = Semaphore(WINDOW_SIZE)
 
         self.socket = socket
         self.target = target
@@ -59,8 +65,10 @@ class ReliableStream:
 
     def send(self, data: bytes):
         """
-        Envía un paquete de datos al destinatario especificado."""
-        self.semaphore.acquire()
+        Envía un paquete de datos al destinatario especificado. Si
+        se alcanza el tamaño de la ventana, se bloquea hasta que se
+        reciba un acknowledgment para un paquete enviado."""
+        self.window_semaphore.acquire()
 
         packet = DataPacket(self.next_seq._value, data)
         self._send_data_packet(packet)
@@ -95,7 +103,11 @@ class ReliableStream:
         Este debe poder ser decodificado en un Packet, en caso contrario
         se ignora."""
 
-        packet = Packet.decode(data)
+        try:
+            packet = Packet.decode(data)
+        except InvalidPacketException:
+            return
+
         if isinstance(packet, AckPacket):
             self._handle_ack(packet)
         elif isinstance(packet, DataPacket):
@@ -104,11 +116,12 @@ class ReliableStream:
     def _handle_ack(self, packet: AckPacket):
         """
         Se ejecuta cuando se recibe un AckPacket. Cancela el timer
-        correspondiente al paquete de datos que se ha recibido."""
+        correspondiente al paquete de datos que se ha recibido y libera
+        un espacio en la ventana."""
 
         if self.timers.get(packet.sequence):
             self.timers.pop(packet.sequence).cancel()
-            self.semaphore.release()
+            self.window_semaphore.release()
 
     def _send_packet(self, packet: Packet):
         """
@@ -141,22 +154,22 @@ class ReliableStream:
 
         if packet.sequence == self.expected.value:
             self.expected.increase()
-            self.queue_packet(packet.data)
-            self.queue_buffered()
+            self._queue_packet(packet.data)
+            self._queue_buffered()
         elif packet.sequence > self.expected.value:
             self.buffer[packet.sequence] = packet.data
 
-    def queue_packet(self, data: bytes):
+    def _queue_packet(self, data: bytes):
         """
         Encola el paquete de datos especificado en recv_queue."""
 
         self.recv_queue.put((data, self.target))
 
-    def queue_buffered(self):
+    def _queue_buffered(self):
         """
         Encola todos los paquetes de datos en el buffer que se pueden
         encolar en recv_queue."""
 
         while self.buffer.get(self.expected.value):
-            self.queue_packet(self.buffer.pop(self.expected.value))
+            self._queue_packet(self.buffer.pop(self.expected.value))
             self.expected.increase()
