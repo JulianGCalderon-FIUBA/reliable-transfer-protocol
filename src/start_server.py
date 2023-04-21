@@ -4,7 +4,7 @@ import socket
 
 from lib.connection import ConnectionRFTP
 from lib.packet import AckFPacket, DataFPacket
-from lib.transport.selective_repeat import SelectiveRepeatServerProtocol
+from lib.transport.transport import ReliableTransportServer
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
@@ -41,7 +41,7 @@ def handle_client(client_sckt):
 
 
 def main(arguments):
-    connection = SelectiveRepeatServerProtocol(("", 10000))
+    connection = ReliableTransportServer((("", 10000)))
     connection = ConnectionRFTP(connection)
 
     handshake, from_where = connection.listen()

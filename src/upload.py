@@ -2,7 +2,7 @@ import argparse
 from argparse import ArgumentParser
 from lib.connection import ConnectionRFTP
 from lib.packet import DataFPacket, WriteRequestPacket
-from lib.transport.selective_repeat import SelectiveRepeatClientProtocol
+from lib.transport.transport import ReliableTransportClient
 
 SERVER_BUFF_SIZE = 512
 
@@ -33,7 +33,7 @@ def main(arguments):
     # get host ephemeral port from answer
     print(arguments.name)
 
-    connection = SelectiveRepeatClientProtocol(("", 10000))
+    connection = ReliableTransportClient(("", 10000))
     connection = ConnectionRFTP(connection)
     _answer, address = connection.send_handshake(
         WriteRequestPacket(arguments.src), (arguments.host, arguments.port)

@@ -39,7 +39,7 @@ class ConnectionRFTP(ABC):
         self.segmenter.segment(data)
         packet = self.segmenter.get_next()
         while packet is not None:
-            
+            print("Sending:", packet.block)
             self.socket.send_to(packet.encode(), address)
             packet = self.segmenter.get_next()
 
