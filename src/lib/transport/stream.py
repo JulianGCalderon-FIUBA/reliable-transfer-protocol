@@ -1,8 +1,8 @@
 from queue import Queue
 from socket import socket
-from threading import Timer
+from threading import Semaphore, Timer
 from typing import Dict
-from lib.transport.consts import SEQUENCE_BYTES, TIMER, Address
+from lib.transport.consts import SEQUENCE_BYTES, TIMER, WINDOW_SIZE, Address
 
 from lib.transport.packet import AckPacket, DataPacket, Packet
 
@@ -51,6 +51,7 @@ class ReliableStream:
         self.expected = SequenceNumber()
         self.buffer: Dict[int, bytes] = {}
         self.timers: Dict[int, Timer] = {}
+        self.semaphore = Semaphore(WINDOW_SIZE)
 
         self.socket = socket
         self.target = target
@@ -59,6 +60,7 @@ class ReliableStream:
     def send(self, data: bytes):
         """
         Envía un paquete de datos al destinatario especificado."""
+        self.semaphore.acquire()
 
         packet = DataPacket(self.next_seq._value, data)
         self._send_data_packet(packet)
@@ -71,11 +73,19 @@ class ReliableStream:
         self._send_packet(packet)
         self._start_timer_for(packet)
 
+    def _resend_data_packet(self, packet: DataPacket):
+        """
+        Reenvia el DataPacket especificado."""
+
+        self.timers.pop(packet.sequence).cancel()
+
+        self._send_data_packet(packet)
+
     def _start_timer_for(self, packet: DataPacket):
         """
         Comienza el timer para reenviar el DataPacket especificado."""
 
-        timer = Timer(TIMER, self._send_data_packet, args=[packet])
+        timer = Timer(TIMER, self._resend_data_packet, args=[packet])
         timer.start()
         self.timers[packet.sequence] = timer
 
@@ -98,6 +108,7 @@ class ReliableStream:
 
         if self.timers.get(packet.sequence):
             self.timers.pop(packet.sequence).cancel()
+            self.semaphore.release()
 
     def _send_packet(self, packet: Packet):
         """
