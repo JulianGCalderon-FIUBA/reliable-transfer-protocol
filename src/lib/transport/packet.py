@@ -1,21 +1,23 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum, auto
 
-ENDIAN = "big"
 
 SEQUENCE_BYTES = 2
 LENGTH_BYTES = 2
-
-MAX_SEQUENCE = 65535
-MAX_LENGTH = 65535
+ENDIAN = "big"
 
 
 class CODES(IntEnum):
     """
-    Codigos de operacion para los paquetes."""
+    Codigos de operacion para distinguir los paquetes."""
 
     ACK = auto()
     DATA = auto()
+
+
+class InvalidPacketException(Exception):
+    "Representa un error al decodificar un paquete."
+    pass
 
 
 class Packet(ABC):
@@ -32,13 +34,13 @@ class Packet(ABC):
         data = data[2:]
 
         for subclass in cls.__subclasses__():
-            if subclass.opcode() == opcode:  # type: ignore
+            if subclass._opcode() == opcode:  # type: ignore
                 return subclass.decode(data)
 
-        raise ValueError(f"Invalid opcode: {opcode}")
+        raise InvalidPacketException()
 
     @abstractmethod
-    def opcode(cls) -> int:
+    def _opcode(cls) -> int:
         """
         Codigo de operacion del paquete."""
         pass
@@ -47,9 +49,10 @@ class Packet(ABC):
         """
         Codifica el paquete a un stream de bytes.
         El stream de bytes comienza con el codigo de operacion
-        y luego los datos del paquete.
-        El codigo de operacion ya es codificado por la implementacion base."""
-        return self.opcode().to_bytes(2, ENDIAN)
+        y luego los headers especificos para cada subclase.
+        La implementación base unicamente codifica el codigo de
+        operacion"""
+        return self._opcode().to_bytes(2, ENDIAN)
 
 
 class AckPacket(Packet):
@@ -59,11 +62,12 @@ class AckPacket(Packet):
     def __init__(self, sequence: int):
         """
         Se define con un numero de secuencia.
-        Corresponde al numero de secuencia del paquete DATA"""
+        Corresponde al numero de secuencia del paquete DATA
+        al que se esta respondiendo."""
         self.sequence = sequence
 
     @classmethod
-    def opcode(cls) -> int:
+    def _opcode(cls) -> int:
         return CODES.ACK
 
     @classmethod
@@ -90,7 +94,7 @@ class DataPacket(Packet):
         self.data = data
 
     @classmethod
-    def opcode(cls) -> int:
+    def _opcode(cls) -> int:
         return CODES.DATA
 
     @classmethod
