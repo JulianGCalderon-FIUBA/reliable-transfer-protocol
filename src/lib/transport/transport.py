@@ -26,19 +26,19 @@ class ReliableTransportProtocol:
         self.recv_queue = Queue()
         self.streams: Dict[Address, ReliableStream] = {}
 
-        self.spawn_reader()
+        self._spawn_reader()
 
     def recv_from(self) -> Tuple[bytes, Address]:
         return self.recv_queue.get()
 
     def send_to(self, data: bytes, target: Address):
-        self.stream_for_address(target).send(data)
+        self._stream_for_address(target).send(data)
 
-    def spawn_reader(self):
-        self.thread_handle = threading.Thread(target=self.reader)
+    def _spawn_reader(self):
+        self.thread_handle = threading.Thread(target=self._reader)
         self.thread_handle.start()
 
-    def reader(self):
+    def _reader(self):
         socket = self.socket.dup()
         while True:
             data, address = socket.recvfrom(BUFSIZE)
@@ -48,15 +48,18 @@ class ReliableTransportProtocol:
                 data, address = socket.recvfrom(BUFSIZE)
             # MANUAL PACKET LOSS
 
-            self.stream_for_address(address).recv(data)
+            self._stream_for_address(address).recv(data)
 
-    def stream_for_address(self, address):
+    def _stream_for_address(self, address):
         if self.streams.get(address):
             return self.streams[address]
 
         self.streams[address] = ReliableStream(self.socket, address, self.recv_queue)
 
-        return self.stream_for_address(address)
+        return self._stream_for_address(address)
+
+    def bind(self, address: Address):
+        self.socket.bind(address)
 
 
 class ReliableTransportClient(ReliableTransportProtocol):
@@ -78,4 +81,4 @@ class ReliableTransportClient(ReliableTransportProtocol):
 class ReliableTransportServer(ReliableTransportProtocol):
     def __init__(self, address: Address):
         super().__init__()
-        self.socket.bind(address)
+        self.bind(address)
