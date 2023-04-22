@@ -76,7 +76,7 @@ class ConnectionRFTP(ABC):
     def upload(
             self, filename: str, data: bytes, address: tuple[str, int]
             ) -> None:
-
+        
         _answer, address = self.send_handshake(WriteRequestPacket(filename), address)
         print("Handshaked")
         self.sendto(data, address)

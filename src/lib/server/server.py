@@ -43,6 +43,7 @@ class Server:
         self.address = address
 
     def listen(self) -> None:
+        print("Listening")
         handshake, from_where = self.connection.listen()
 
         self.check_request(handshake, from_where)
@@ -131,6 +132,7 @@ class WriteWorker:
         self.dump.write(file.decode())
         self.dump.close()
         self.directory.delete_connection(self.target)
+        return
 
 
 class ReadWorker:
@@ -157,6 +159,7 @@ class ReadWorker:
         self.connection.sendto(self.dump, self.target)
         print("Data sent")
         self.directory.delete_connection(self.target)
+        return
 
 
 def get_random_port() -> int:

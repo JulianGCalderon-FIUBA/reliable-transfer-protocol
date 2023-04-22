@@ -43,7 +43,8 @@ def handle_client(client_sckt):
 
 def main(arguments):
     server = Server(("", 10000), "/home/franciscojavierpereira/Documents/redes/tpredes/")
-    server.listen()
+    while True:
+        server.listen()
 
 
 if __name__ == "__main__":
