@@ -36,7 +36,7 @@ def main(arguments):
     connection = ReliableTransportClient(("", 10000))
     connection = ConnectionRFTP(connection)
     _answer, address = connection.send_handshake(
-        WriteRequestPacket(arguments.src), (arguments.host, arguments.port)
+        WriteRequestPacket("Prueba.txt"), (arguments.host, arguments.port)
     )
     with open(arguments.src) as upload_file:
         data = upload_file.read(-1)

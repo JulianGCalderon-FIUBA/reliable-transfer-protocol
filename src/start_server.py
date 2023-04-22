@@ -5,6 +5,7 @@ import socket
 from lib.connection import ConnectionRFTP
 from lib.packet import AckFPacket, DataFPacket
 from lib.transport.transport import ReliableTransportServer
+from lib.server.server import Server
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
@@ -41,15 +42,8 @@ def handle_client(client_sckt):
 
 
 def main(arguments):
-    connection = ReliableTransportServer((("", 10000)))
-    connection = ConnectionRFTP(connection)
-
-    handshake, from_where = connection.listen()
-    connection.answer_handshake(from_where)
-
-    file = connection.recieve_file()
-    print("Termine")
-    print(file.decode())
+    server = Server(("", 10000), "/home/fran/Documents/distribuidos/")
+    server.listen()
 
 
 if __name__ == "__main__":
