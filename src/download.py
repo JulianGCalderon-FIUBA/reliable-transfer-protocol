@@ -1,16 +1,15 @@
-import argparse
-from argparse import ArgumentParser
 import socket
 
 from lib.connection import StopAndWaitConnection
 from lib.packet import ReadRequestPacket
+from argparse import ArgumentParser
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
 
 
 def start_parser() -> "ArgumentParser":
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog="Download parser",
         description="Allows to parse download flags received by command line",
     )
@@ -19,7 +18,8 @@ def start_parser() -> "ArgumentParser":
     group.add_argument("-v", "--verbose", help="increase output verbosity")
     group.add_argument("-q", "--quiet", help="decrease output verbosity")
 
-    parser.add_argument("-H", "--host", type=int, help="server IP address", nargs=1)
+    parser.add_argument("-H", "--host", type=int,
+                        help="server IP address", nargs=1)
     parser.add_argument("-p", "--port", type=int, help="server port", nargs=1)
     parser.add_argument("-d", "--dst", help="destination file path", nargs=1)
     parser.add_argument("-n", "--name", help="file name", nargs=1)

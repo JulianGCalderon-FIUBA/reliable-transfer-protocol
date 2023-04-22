@@ -1,4 +1,3 @@
-import argparse
 from argparse import ArgumentParser
 from lib.connection import ConnectionRFTP
 from lib.packet import DataFPacket, WriteRequestPacket
@@ -8,7 +7,7 @@ SERVER_BUFF_SIZE = 512
 
 
 def start_parser() -> "ArgumentParser":
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog="Upload parser",
         description="Allows to parse upload flags received by command line",
     )
@@ -31,7 +30,6 @@ def main(arguments):
     # send file using stop-and-wait
     # receive answer in bound port
     # get host ephemeral port from answer
-    
 
     connection = ReliableTransportClient(("", 10000))
     connection = ConnectionRFTP(connection)
