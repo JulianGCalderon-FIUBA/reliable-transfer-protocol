@@ -2,7 +2,7 @@ import argparse
 from argparse import ArgumentParser
 from lib.connection import ConnectionRFTP
 from lib.packet import DataFPacket, WriteRequestPacket
-from lib.transport.transport import ReliableTransportClient
+from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
 
 SERVER_BUFF_SIZE = 512
 
@@ -31,16 +31,14 @@ def main(arguments):
     # send file using stop-and-wait
     # receive answer in bound port
     # get host ephemeral port from answer
-    
 
-    connection = ReliableTransportClient(("", 10000))
+    connection = ReliableTransportServer(("", 10001))
     connection = ConnectionRFTP(connection)
-    _answer, address = connection.send_handshake(
-        WriteRequestPacket(arguments.name), (arguments.host, arguments.port)
-    )
+
     with open(arguments.src) as upload_file:
         data = upload_file.read(-1)
-        connection.sendto(data.encode(), address)
+        connection.upload(arguments.name,
+                          data.encode(), (arguments.host, arguments.port))
 
 
 if __name__ == "__main__":

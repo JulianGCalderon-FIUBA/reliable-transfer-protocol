@@ -42,7 +42,7 @@ def handle_client(client_sckt):
 
 
 def main(arguments):
-    server = Server(("", 10000), "/home/fran/Documents/distribuidos/")
+    server = Server(("", 10000), "/home/franciscojavierpereira/Documents/redes/tpredes/")
     server.listen()
 
 

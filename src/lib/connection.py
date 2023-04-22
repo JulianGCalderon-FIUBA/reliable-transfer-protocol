@@ -77,7 +77,8 @@ class ConnectionRFTP(ABC):
             self, filename: str, data: bytes, address: tuple[str, int]
             ) -> None:
 
-        self.send_handshake(WriteRequestPacket(filename), address)
+        _answer, address = self.send_handshake(WriteRequestPacket(filename), address)
+        print("Handshaked")
         self.sendto(data, address)
 
     """
@@ -85,13 +86,14 @@ class ConnectionRFTP(ABC):
     """
 
     def download(self, filename: str, address: tuple[str, int]) -> bytes:
-        self.send_handshake(ReadRequestPacket(filename), address)
+        _answer, address = self.send_handshake(ReadRequestPacket(filename), address)
+        print("Handshaked")
+        
         return self.recieve_file()
 
     def recieve_file(self) -> bytes:
         packet, _address = self.recieve_from()
         # Chekear que sea de data
-        
         packet = DataFPacket.decode_as_data(packet)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:
