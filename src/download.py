@@ -9,7 +9,7 @@ SERVER_BUFF_SIZE = 512
 
 
 def start_parser() -> "ArgumentParser":
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog="Download parser",
         description="Allows to parse download flags received by command line",
     )
