@@ -20,7 +20,7 @@ def start_parser() -> "ArgumentParser":
     parser.add_argument("-H", "--host", type=str, help="server IP address")
     parser.add_argument("-p", "--port", type=int, help="server port")
     parser.add_argument("-s", "--src", help="source file path")
-    parser.add_argument("-n", "--name", help="file name", nargs=1)
+    parser.add_argument("-n", "--name", help="file name")
 
     return parser
 
@@ -31,12 +31,12 @@ def main(arguments):
     # send file using stop-and-wait
     # receive answer in bound port
     # get host ephemeral port from answer
-    print(arguments.name)
+    
 
     connection = ReliableTransportClient(("", 10000))
     connection = ConnectionRFTP(connection)
     _answer, address = connection.send_handshake(
-        WriteRequestPacket("Prueba.txt"), (arguments.host, arguments.port)
+        WriteRequestPacket(arguments.name), (arguments.host, arguments.port)
     )
     with open(arguments.src) as upload_file:
         data = upload_file.read(-1)
