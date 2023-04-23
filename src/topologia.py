@@ -1,7 +1,9 @@
-import argparse
 from mininet.topo import Topo
 from mininet.link import TCLink
-from lib.constants import MIN_HOST_AMOUNT, LINK_LOSS
+
+
+HOST_AMOUNT = 2
+LINK_LOSS = 10
 
 
 class CustomTopo(Topo):
@@ -18,12 +20,4 @@ class CustomTopo(Topo):
             self.addLink(host, switch, cls=TCLink, loss=LINK_LOSS)
 
 
-parser = argparse.ArgumentParser(
-    prog="Topology", description="Amount of hosts for the server topology"
-)
-parser.add_argument(
-    '-a', '--amount', default=MIN_HOST_AMOUNT, type=int, nargs=1)
-args = parser.parse_args()
-hosts = args.amount
-
-topos = {"customTopo": CustomTopo(hosts)}
+topos = {"customTopo": lambda: CustomTopo(HOST_AMOUNT)}

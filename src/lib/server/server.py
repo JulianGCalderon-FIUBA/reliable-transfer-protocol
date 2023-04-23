@@ -25,8 +25,11 @@ class Server:
     def listen(self) -> None:
         while True:
             packet, address = self.socket.recv_from()
-            handshake, from_where = Packet.decode(packet), address
-            self.check_request(handshake, from_where)
+            handshake = Packet.decode(packet)
+            self.handle_client(handshake, address)
+
+    def handle_client(self, handshake: 'Packet', address: Address):
+        Thread(target=self.check_request, args=[handshake, address]).start()
 
     def check_request(self, request: "Packet", address: Address):
         if isinstance(request, ReadRequestPacket):
@@ -39,9 +42,7 @@ class Server:
     def check_write_request(self, request: "WriteRequestPacket", address: Address):
         file_path = self.build_file_path(request.name)
         if path.exists(file_path):
-            self.socket.send_to(
-                ErrorPacket.from_exception(FileExists()).encode(), address
-            )
+            ErrorWorker(address, FileExists()).run()
             return
 
         self.attempt_request(address, file_path, write=True)
@@ -49,9 +50,7 @@ class Server:
     def check_read_request(self, request: "ReadRequestPacket", address: Address):
         file_path = self.build_file_path(request.name)
         if not path.exists(file_path):
-            self.socket.send_to(
-                ErrorPacket.from_exception(FilenNotExists()).encode(), address
-            )
+            ErrorWorker(address, FilenNotExists()).run()
             return
 
         self.attempt_request(address, file_path, write=False)
@@ -59,18 +58,27 @@ class Server:
     def attempt_request(self, target_address: Address, file_path: str, write):
         try:
             if write:
-                WriteWorker(target_address, file_path).start_thread()
+                WriteWorker(target_address, file_path).run()
             else:
-                ReadWorker(target_address, file_path).start_thread()
+                ReadWorker(target_address, file_path).run()
             return
         except Exception as e:
             print(e)
-            self.socket.send_to(
-                ErrorPacket.from_exception(Exception()).encode(), target_address
-            )
+            ErrorWorker(target_address, Exception()).run()
 
     def build_file_path(self, filename: str) -> str:
         return self.root_directory + filename
+
+
+class ErrorWorker:
+    def __init__(self, target_address: Address, error: Exception) -> None:
+        self.error = ErrorPacket.from_exception(error).encode()
+        self.socket = ReliableTransportClient(target_address)
+        self.target = target_address
+
+    def run(self):
+        self.socket.send(self.error)
+        self.socket.close()
 
 
 class WriteWorker:
@@ -79,9 +87,6 @@ class WriteWorker:
         self.socket = ReliableTransportClient(target_address)
         self.connection = ConnectionRFTP(self.socket)
         self.target = target_address
-
-    def start_thread(self):
-        Thread(target=self.run).start()
 
     def run(self):
         self.socket.send_to(AckFPacket(0).encode(), self.target)
@@ -98,14 +103,7 @@ class ReadWorker:
         self.connection = ConnectionRFTP(self.socket)
         self.target = target_address
 
-    def start_thread(self):
-        Thread(target=self.run).start()
-
     def run(self):
         self.socket.send(AckFPacket(0).encode())
         self.connection.send(self.file_bytes)
         return  # pending
-
-
-def get_random_port() -> int:
-    return random.randint(30000, 35000)

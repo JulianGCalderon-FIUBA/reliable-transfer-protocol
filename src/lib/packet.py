@@ -57,19 +57,19 @@ Lanza una excepción si el opcode es invalido
 
 
 def class_for_opcode(opcode: int) -> type[Packet]:
-    match opcode:
-        case OPCODES.RRQ:
+    
+        if opcode == OPCODES.RRQ:
             return ReadRequestPacket
-        case OPCODES.WRQ:
+        if opcode == OPCODES.WRQ:
             return WriteRequestPacket
-        case OPCODES.DATA:
+        if opcode == OPCODES.DATA:
             return DataFPacket
-        case OPCODES.ACK:
+        if opcode == OPCODES.ACK:
             return AckFPacket
-        case OPCODES.ERROR:
+        if opcode == OPCODES.ERROR:
             return ErrorPacket
-        case _:
-            raise ValueError("invalid opcode")
+        
+        raise ValueError("invalid opcode")
 
 
 """
@@ -226,16 +226,16 @@ class ErrorPacket(Packet):
         return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:
-        match self.error_code:
-            case ERRORCODES.UNORDERED:
+        
+            if self.error_code == ERRORCODES.UNORDERED:
                 return UnorderedPacket()
-            case ERRORCODES.FILEEXISTS:
+            if self.error_code == ERRORCODES.FILEEXISTS:
                 return FileExists()
-            case ERRORCODES.FILENOTEXISTS:
+            if self.error_code == ERRORCODES.FILENOTEXISTS:
                 return FilenNotExists()
-            case ERRORCODES.FAILEDHANDSHAKE:
+            if self.error_code == ERRORCODES.FAILEDHANDSHAKE:
                 return FailedHandshake()
-            case ERRORCODES.INVALIDPACKET:
+            if self.error_code == ERRORCODES.INVALIDPACKET:
                 return InvalidPacket()
-            case _:
-                return Exception()
+            
+            return Exception()
