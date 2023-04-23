@@ -11,7 +11,7 @@ ENDIAN = "big"
 
 class CODES(IntEnum):
     """
-    Codigos de operacion para distinguir los paquetes."""
+    Códigos de operación para distinguir los paquetes."""
 
     ACK = auto()
     DATA = auto()
@@ -25,7 +25,7 @@ class Packet(ABC):
     def decode(cls, data: bytes) -> "Packet":
         """
         Decodifica un paquete a partir de un stream de bytes.
-        La instancia del paquete dependera del codigo de operacion."""
+        La instancia del paquete dependerá del código de operación."""
 
         opcode = int.from_bytes(data[:2], ENDIAN)
         data = data[2:]
