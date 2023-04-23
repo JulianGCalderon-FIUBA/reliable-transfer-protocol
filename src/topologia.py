@@ -29,4 +29,4 @@ args = parser.parse_args()
 size = args.size
 loss = args.loss
 
-topos = {"customTopo": CustomTopo(size, loss)}
+topos = {"customTopo": (lambda: CustomTopo(size, loss))}
