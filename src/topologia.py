@@ -1,28 +1,30 @@
 import argparse
 from mininet.topo import Topo
 from mininet.link import TCLink
-from lib.constants import MIN_HOST_AMOUNT, LINK_LOSS
+from lib.constants import DEFAULT_HOST_AMOUNT, DEFAULT_LINK_LOSS
 
 
 class CustomTopo(Topo):
-    def __init__(self, hosts):
-        # Initialize topology
-        Topo.__init__(self, hosts)
+    def __init__(self, size, loss):
+        Topo.__init__(self, size)
         server = self.addHost("server")
-        switch = self.addSwitch("s1")
+        switch = self.addSwitch("switch")
 
-        self.addLink(server, switch, loss=LINK_LOSS)
+        self.addLink(server, switch, loss=loss)
 
-        for i in range(0, hosts):
-            host = self.addHost("host_" + str(i + 1))
-            self.addLink(host, switch, cls=TCLink, loss=LINK_LOSS)
+        for i in range(1, size + 1):
+            host = self.addHost(f"host_{i}")
+            self.addLink(host, switch, cls=TCLink, loss=loss)
 
 
 parser = argparse.ArgumentParser(
     prog="Topology", description="Amount of hosts for the server topology"
 )
-parser.add_argument("-a", "--amount", default=MIN_HOST_AMOUNT, type=int, nargs=1)
-args = parser.parse_args()
-hosts = args.amount
 
-topos = {"customTopo": CustomTopo(hosts)}
+parser.add_argument("-s", "--size", default=DEFAULT_HOST_AMOUNT, type=int, nargs=1)
+parser.add_argument("-l", "--loss", default=DEFAULT_LINK_LOSS, type=int, nargs=1)
+args = parser.parse_args()
+size = args.size
+loss = args.loss
+
+topos = {"customTopo": CustomTopo(size, loss)}

@@ -23,6 +23,7 @@ class ConnectionRFTP(ABC):
         """
         Cierra el socket
         """
+
         pass
 
     def send_file(self, data: bytes):
