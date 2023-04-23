@@ -123,7 +123,7 @@ class WriteWorker:
         self.directory.add_connection(address, self_address)
 
     def start_thread(self):
-        Thread(target=self.run).run()
+        Thread(target=self.run).start()
 
     def run(self):
         self.connection.answer_handshake(self.target)
@@ -150,7 +150,7 @@ class ReadWorker:
         self.directory.add_connection(address, self_address)
 
     def start_thread(self):
-        Thread(target=self.run).run()
+        Thread(target=self.run).start()
 
     def run(self):
         print("Sending!!")
