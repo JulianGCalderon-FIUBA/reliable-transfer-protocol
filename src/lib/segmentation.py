@@ -1,5 +1,5 @@
 from lib.constants import DATASIZE
-from lib.packet import DataFPacket, Packet
+from lib.packet import DataFPacket, TransportPacket
 
 
 class Segmenter:
@@ -26,7 +26,7 @@ class Segmenter:
     def __iter__(self):
         return self
 
-    def __next__(self) -> Packet:
+    def __next__(self) -> TransportPacket:
         if len(self.segments) == 0:
             raise StopIteration
 

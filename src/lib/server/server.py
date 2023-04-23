@@ -4,7 +4,7 @@ from threading import Thread
 from lib.connection import ConnectionRFTP
 from lib.exceptions import FilenNotExists
 from lib.packet import (
-    Packet,
+    TransportPacket,
     ReadRequestPacket,
     WriteRequestPacket,
     ErrorPacket,
@@ -25,10 +25,10 @@ class Server:
 
     def accept(self):
         data, address = self.socket.recv_from()
-        packet = Packet.decode(data)
+        packet = TransportPacket.decode(data)
         self.check_request(packet, address)
 
-    def check_request(self, request: Packet, address: Address):
+    def check_request(self, request: TransportPacket, address: Address):
         if isinstance(request, ReadRequestPacket):
             return self.check_read_request(request, address)
         elif isinstance(request, WriteRequestPacket):

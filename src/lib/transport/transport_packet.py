@@ -9,7 +9,7 @@ LENGTH_BYTES = 2
 ENDIAN = "big"
 
 
-class CODES(IntEnum):
+class _CODES(IntEnum):
     """
     Códigos de operación para distinguir los paquetes."""
 
@@ -17,12 +17,12 @@ class CODES(IntEnum):
     DATA = auto()
 
 
-class Packet(ABC):
+class TransportPacket(ABC):
     """
     Clase base para los paquetes."""
 
     @classmethod
-    def decode(cls, data: bytes) -> "Packet":
+    def decode(cls, data: bytes) -> "TransportPacket":
         """
         Decodifica un paquete a partir de un stream de bytes.
         La instancia del paquete dependerá del código de operación."""
@@ -52,7 +52,7 @@ class Packet(ABC):
         return self._opcode().to_bytes(2, ENDIAN)
 
 
-class AckPacket(Packet):
+class TransportAckPacket(TransportPacket):
     """
     Paquete de acknowledgment del paquete DATA."""
 
@@ -65,10 +65,10 @@ class AckPacket(Packet):
 
     @classmethod
     def _opcode(cls) -> int:
-        return CODES.ACK
+        return _CODES.ACK
 
     @classmethod
-    def decode(cls, stream: bytes) -> "AckPacket":
+    def decode(cls, stream: bytes) -> "TransportAckPacket":
         id = int.from_bytes(stream[:2], ENDIAN)
 
         return cls(id)
@@ -77,7 +77,7 @@ class AckPacket(Packet):
         return super().encode() + self.sequence.to_bytes(2, ENDIAN)
 
 
-class DataPacket(Packet):
+class TransportDataPacket(TransportPacket):
     """
     Paquete de datos."""
 
@@ -92,10 +92,10 @@ class DataPacket(Packet):
 
     @classmethod
     def _opcode(cls) -> int:
-        return CODES.DATA
+        return _CODES.DATA
 
     @classmethod
-    def decode(cls, stream: bytes) -> "DataPacket":
+    def decode(cls, stream: bytes) -> "TransportDataPacket":
         id = int.from_bytes(stream[:2], ENDIAN)
         length = int.from_bytes(stream[2:4], ENDIAN)
         data = stream[4:]

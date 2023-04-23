@@ -4,12 +4,12 @@ from threading import Semaphore, Timer
 from typing import Dict
 from lib.transport.consts import DROP_THRESHOLD, TIMER, WINDOW_SIZE, Address
 
-from lib.transport.packet import (
+from lib.transport.transport_packet import (
     SEQUENCE_BYTES,
-    AckPacket,
-    DataPacket,
+    TransportAckPacket,
+    TransportDataPacket,
     InvalidPacketException,
-    Packet,
+    TransportPacket,
 )
 
 
@@ -59,7 +59,7 @@ class ReliableStream:
         self.timers: Dict[int, Timer] = {}
         self.window_semaphore = Semaphore(WINDOW_SIZE)
         self.consecutive_interrupts = 0
-        self.online = True
+        self.closing = False
 
         self.socket = socket
         self.target = target
@@ -72,18 +72,18 @@ class ReliableStream:
         reciba un acknowledgment para un paquete enviado."""
         self.window_semaphore.acquire()
 
-        packet = DataPacket(self.next_seq._value, data)
+        packet = TransportDataPacket(self.next_seq._value, data)
         self._send_data_packet(packet)
         self.next_seq.increase()
 
-    def _send_data_packet(self, packet: DataPacket):
+    def _send_data_packet(self, packet: TransportDataPacket):
         """
         Envia el DataPacket especificado y comienza el timer correspondiente."""
 
         self._start_timer_for(packet)
         self._send_packet(packet)
 
-    def _resend_data_packet(self, packet: DataPacket):
+    def _resend_data_packet(self, packet: TransportDataPacket):
         """
         Reenvia el DataPacket especificado. Si se alcanza el umbral de
         interrupciones consecutivas, se ignora. Esto permite que el
@@ -93,12 +93,12 @@ class ReliableStream:
         self.timers.pop(packet.sequence).cancel()
 
         self.consecutive_interrupts += 1
-        if self.consecutive_interrupts >= DROP_THRESHOLD and not self.online:
+        if self.consecutive_interrupts >= DROP_THRESHOLD and self.closing:
             return
 
         self._send_data_packet(packet)
 
-    def _start_timer_for(self, packet: DataPacket):
+    def _start_timer_for(self, packet: TransportDataPacket):
         """
         Comienza el timer para reenviar el DataPacket especificado."""
 
@@ -113,18 +113,18 @@ class ReliableStream:
         se ignora."""
 
         try:
-            packet = Packet.decode(data)
+            packet = TransportPacket.decode(data)
         except InvalidPacketException:
             return
 
         self.consecutive_interrupts = 0
 
-        if isinstance(packet, AckPacket):
+        if isinstance(packet, TransportAckPacket):
             self._handle_ack(packet)
-        elif isinstance(packet, DataPacket):
+        elif isinstance(packet, TransportDataPacket):
             self._handle_data(packet)
 
-    def _handle_ack(self, packet: AckPacket):
+    def _handle_ack(self, packet: TransportAckPacket):
         """
         Se ejecuta cuando se recibe un AckPacket. Cancela el timer
         correspondiente al paquete de datos que se ha recibido y libera
@@ -134,7 +134,7 @@ class ReliableStream:
             self.timers.pop(packet.sequence).cancel()
             self.window_semaphore.release()
 
-    def _send_packet(self, packet: Packet):
+    def _send_packet(self, packet: TransportPacket):
         """
         Envia el Packet especificado al destinatario especificado."""
 
@@ -145,9 +145,9 @@ class ReliableStream:
         Envia un acknowledgment para el paquete con el numero de secuencia
         especificado al destinatario."""
 
-        self._send_packet(AckPacket(sequence))
+        self._send_packet(TransportAckPacket(sequence))
 
-    def _handle_data(self, packet: DataPacket):
+    def _handle_data(self, packet: TransportDataPacket):
         """
         Se ejecuta cuando se recibe un DataPacket. Si el paquete se recibio
         correctamente, se envia un acknowledgment. Si el paquete se recibio
@@ -196,4 +196,4 @@ class ReliableStream:
         Prepara el cierra del stream. Esto implica cancelar timers en
         caso de que se detecte que el destinatario ha cerrado la conexión."""
 
-        self.online = False
+        self.closing = True

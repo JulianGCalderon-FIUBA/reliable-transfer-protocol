@@ -2,7 +2,12 @@ from lib.exceptions import FailedHandshake
 from lib.transport.consts import Address
 from lib.transport.transport import ReliableTransportClient
 from lib.connection import ConnectionRFTP
-from lib.packet import AckFPacket, WriteRequestPacket, ReadRequestPacket, Packet
+from lib.packet import (
+    AckFPacket,
+    WriteRequestPacket,
+    ReadRequestPacket,
+    TransportPacket,
+)
 
 
 class Client:
@@ -44,7 +49,7 @@ class Client:
     def expect_answer(self):
         answer, address = self.recv_answer()
 
-        answer = Packet.decode(answer)
+        answer = TransportPacket.decode(answer)
         if isinstance(answer, AckFPacket):
             self.socket.set_target(address)
         else:
