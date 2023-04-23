@@ -26,7 +26,9 @@ class Handler:
 
         print("Received unknown packet type, ignoring...")
 
-    def check_write_request(self, request: WriteRequestPacket, address: Address):
+    def check_write_request(
+            self, request: WriteRequestPacket, address: Address
+            ):
         absolute_path = self.absolute_path(request.name)
         if path.exists(absolute_path):
             ErrorWorker(address, FileExistsError()).run()
@@ -44,4 +46,3 @@ class Handler:
 
     def absolute_path(self, relative_path: str) -> str:
         return os.path.join(self.root_directory, relative_path)
-

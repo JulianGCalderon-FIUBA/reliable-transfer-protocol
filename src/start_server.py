@@ -17,7 +17,8 @@ def start_parser() -> "ArgumentParser":
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
-        "-v", "--verbose", action="store_true", help="increase output verbosity"
+        "-v", "--verbose", action="store_true",
+        help="increase output verbosity"
     )
     group.add_argument(
         "-q", "--quiet", action="store_true", help="decrease output verbosity"
@@ -30,7 +31,8 @@ def start_parser() -> "ArgumentParser":
         "-p", "--port", type=int, help="service port", required=True
     )
     parser.add_argument(
-        "-s", "--storage", default="storage/", type=str, help="storage dir path"
+        "-s", "--storage", default="storage/",
+        type=str, help="storage dir path"
     )
 
     return parser

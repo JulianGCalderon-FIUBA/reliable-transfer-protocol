@@ -15,13 +15,4 @@ class CustomTopo(Topo):
             self.addLink(host, switch, cls=TCLink, loss=loss)
 
 
-# parser = argparse.ArgumentParser(
-#     prog="Topology", description="Amount of hosts for the server topology"
-# )
-# parser.add_argument("-s", "--size", default=MIN_HOST_AMOUNT, type=int, nargs=1)
-# parser.add_argument("-l", "--loss", default=DEFAULT_LINK_LOSS, type=int, nargs=1)
-# args = parser.parse_args()
-# size = args.size
-# loss = args.loss
-
 topos = {"customTopo": (lambda size, loss: CustomTopo(size, loss))}

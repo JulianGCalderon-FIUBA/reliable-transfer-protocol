@@ -1,6 +1,5 @@
 from queue import Queue
 
-from random import random
 import threading
 from typing import Tuple, Dict
 import socket as skt
@@ -11,7 +10,8 @@ from lib.transport.stream import ReliableStream
 
 """
 IMPORTANTE:
-- EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
+- EL bufsize esta hardcodeado en 4096.
+    Se podria hacer que sea configurable, pero
     idealmente los packets deberian poder ser segmentados en caso de que sean
     demasiado grandes.
 - La implementación del stop and wait es un selective repeat, usando un
@@ -104,7 +104,10 @@ class ReliableTransportProtocol:
         Devuelve True si hay algun paquete sin confirmar."""
 
         return any(
-            map(lambda stream: stream.has_unacked_packets(), self.streams.values())
+            map(
+                lambda stream: stream.has_unacked_packets(),
+                self.streams.values()
+            )
         )
 
     def close(self):

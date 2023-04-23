@@ -12,7 +12,6 @@ def start_parser() -> "ArgumentParser":
         usage=" upload [ - h ] [ - v | -q ] [ - H ADDR ] "
         + "[ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
     )
-
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", help="increase output verbosity")
     group.add_argument("-q", "--quiet", help="decrease output verbosity")
@@ -20,7 +19,8 @@ def start_parser() -> "ArgumentParser":
     parser.add_argument(
         "-H", "--host", type=str, help="server IP address", required=True
     )
-    parser.add_argument("-p", "--port", type=int, help="server port", required=True)
+    parser.add_argument("-p", "--port", type=int,
+                        help="server port", required=True)
     parser.add_argument("-s", "--src", help="source file path", required=True)
     parser.add_argument("-n", "--name", help="file name", required=True)
 
