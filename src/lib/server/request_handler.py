@@ -10,17 +10,16 @@ from lib.packet import (
     AckFPacket,
 )
 from lib.transport.consts import Address
-from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
+from lib.transport.transport import ReliableTransportClient
 from os import path
 
 
 class Handler:
-
     def __init__(self, root_directory: str):
         self.root_directory = root_directory
         pass
 
-    def handle_request(self, packet: 'TransportPacket', address: Address):
+    def handle_request(self, packet: "TransportPacket", address: Address):
         Thread(target=self.check_request, args=[packet, address]).start()
 
     def check_request(self, request: TransportPacket, address: Address):
