@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum, auto
 
+from lib.transport.exceptions import InvalidPacketException
+
 
 SEQUENCE_BYTES = 2
 LENGTH_BYTES = 2
@@ -13,11 +15,6 @@ class CODES(IntEnum):
 
     ACK = auto()
     DATA = auto()
-
-
-class InvalidPacketException(Exception):
-    "Representa un error al decodificar un paquete."
-    pass
 
 
 class Packet(ABC):

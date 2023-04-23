@@ -5,6 +5,7 @@ import threading
 from typing import Tuple, Dict
 import socket as skt
 from lib.transport.consts import BUFSIZE, Address
+from lib.transport.exceptions import SendingNoneData, InvalidAddress
 
 from lib.transport.stream import ReliableStream
 
@@ -49,6 +50,15 @@ class ReliableTransportProtocol:
         Envía un paquete de datos al destinatario especificado. Si
         aun no se ha recibido ningun paquete, se bloquea hasta que se
         reciba uno."""
+
+        if data is None:
+            raise SendingNoneData()
+
+        if target[0] is None or target[1] is None:
+            raise InvalidAddress()
+
+        print("Length: ", len(data))
+        print("Address:", {target})
 
         self._stream_for_address(target).send(data)
 
@@ -143,6 +153,9 @@ class ReliableTransportClient(ReliableTransportProtocol):
     paquetes que no provengan del destinatario especificado)."""
 
     def __init__(self, target: Address):
+        if target[0] is None or target[1] is None:
+            raise InvalidAddress()
+
         super().__init__()
         self.target = target
 
@@ -178,5 +191,8 @@ class ReliableTransportServer(ReliableTransportProtocol):
     Se bindea a una direccion especifica en construccion"""
 
     def __init__(self, address: Address):
+        if address[0] is None or address[1] is None:
+            raise InvalidAddress()
+
         super().__init__()
         self.bind(address)
