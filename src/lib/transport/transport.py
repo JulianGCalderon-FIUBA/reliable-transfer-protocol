@@ -130,6 +130,8 @@ class ReliableTransportProtocol:
 
         self.thread_handle.join()
 
+        self.socket.close()
+
 
 class ReliableTransportClient(ReliableTransportProtocol):
     """
