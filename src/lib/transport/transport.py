@@ -97,12 +97,9 @@ class ReliableTransportProtocol:
         nota: Al no haber un handshake, es vulnerable a ataques syn flood.
         """
 
-        if self.streams.get(address):
-            return self.streams[address]
-
-        self.streams[address] = ReliableStream(self.socket, address, self.recv_queue)
-
-        return self._stream_for_address(address)
+        return self.streams.setdefault(
+            address, ReliableStream(self.socket, address, self.recv_queue)
+        )
 
     def bind(self, address: Address):
         """
