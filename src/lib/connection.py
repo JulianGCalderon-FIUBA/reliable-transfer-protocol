@@ -7,11 +7,11 @@ from lib.segmentation import Segmenter
 from lib.packet import AckFPacket, DataFPacket, ErrorPacket, Packet, \
     ReadRequestPacket, WriteRequestPacket
 
-from lib.transport.transport import Address, ReliableTransportProtocol
+from lib.transport.transport import Address, ReliableTransportProtocol, ReliableTransportClient
 
 
 class ConnectionRFTP(ABC):
-    def __init__(self, socket: ReliableTransportProtocol):
+    def __init__(self, socket: ReliableTransportClient):
         self.socket = socket
         self.segmenter = Segmenter()
 
@@ -26,12 +26,13 @@ class ConnectionRFTP(ABC):
     Envia los datos definidos en data a traves de la conexion
     """
 
-    def sendto(self, data, address: Address) -> None:
+    def send(self, data) -> None:
         self.segmenter.segment(data)
         packet = self.segmenter.get_next()
         while packet is not None:
-            self.socket.send_to(packet.encode(), address)
+            self.socket.send(packet.encode())
             packet = self.segmenter.get_next()
+
 
     """
     Intenta recuperar un paquete de la conexion
@@ -63,7 +64,7 @@ class ConnectionRFTP(ABC):
         
         _answer, address = self.send_handshake(WriteRequestPacket(filename), address)
         print("Handshaked")
-        self.sendto(data, address)
+        self.send(data)
 
     """
     Inicia una descarga de datos

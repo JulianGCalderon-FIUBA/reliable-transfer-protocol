@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from lib.connection import ConnectionRFTP
 from lib.packet import DataFPacket, WriteRequestPacket
 from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
+from lib.client.client import Client
 
 SERVER_BUFF_SIZE = 512
 
@@ -32,17 +33,10 @@ def main(arguments):
     # send file using stop-and-wait
     # receive answer in bound port
     # get host ephemeral port from answer
-
-    socket = ReliableTransportClient((arguments.host, arguments.port))
-    connection = ConnectionRFTP(socket)
-
-    with open(arguments.src) as upload_file:
-        data = upload_file.read(-1)
-        connection.upload(arguments.name,
-                          data.encode(), (arguments.host, arguments.port))
-
-        socket.close()
-
+    address = (arguments.host, arguments.port)
+    local_path = arguments.src
+    remote_path = arguments.name
+    Client(address, local_path, remote_path).upload()
 
 if __name__ == "__main__":
     arguments = start_parser().parse_args()

@@ -1,5 +1,5 @@
 import random
-from threading import Thread, Lock
+from threading import Thread
 from lib.connection import ConnectionRFTP
 from lib.exceptions import FailedHandshake, FileExists, FilenNotExists
 from lib.packet import (
@@ -33,11 +33,10 @@ class Server:
             return self.check_read_request(request, address)
         elif isinstance(request, WriteRequestPacket):
             return self.check_write_request(request, address)
-
+        print(request)
         raise FailedHandshake()
 
     def check_write_request(self, request: "WriteRequestPacket", address: Address):
-        print("Attempting an upload")
         file_path = self.build_file_path(request.name)
         if path.exists(file_path):
             self.socket.send_to(
@@ -87,7 +86,6 @@ class WriteWorker:
     def run(self):
         self.socket.send_to(AckFPacket(0).encode(), self.target)
         file = self.connection.recieve_file()
-        print(f"Writing to file at: {self.dump}")
         self.dump.write(file.decode())
         self.dump.close()
         return
@@ -104,11 +102,8 @@ class ReadWorker:
         Thread(target=self.run).start()
 
     def run(self):
-        print("Sending!!")  # pending
-        self.socket.send(AckFPacket(0).encode())  # pending
-        print("Handshake sent")  # pending
-        self.connection.sendto(self.file_bytes, self.target)  # pending
-        print("Data sent")  # pending
+        self.socket.send(AckFPacket(0).encode())
+        self.connection.send(self.file_bytes)
         return  # pending
 
 
