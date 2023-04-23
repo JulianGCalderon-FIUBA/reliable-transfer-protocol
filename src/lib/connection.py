@@ -4,7 +4,7 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 from abc import ABC
 from lib.constants import DATASIZE, WILDCARD_ADDRESS
 from lib.segmentation import Segmenter
-from lib.packet import AckFPacket, DataFPacket, Packet, \
+from lib.packet import AckFPacket, DataFPacket, ErrorPacket, Packet, \
     ReadRequestPacket, WriteRequestPacket
 
 from lib.transport.transport import Address, ReliableTransportProtocol
@@ -39,7 +39,6 @@ class ConnectionRFTP(ABC):
         self.segmenter.segment(data)
         packet = self.segmenter.get_next()
         while packet is not None:
-            print("Sending:", packet.block)
             self.socket.send_to(packet.encode(), address)
             packet = self.segmenter.get_next()
 
@@ -61,13 +60,14 @@ class ConnectionRFTP(ABC):
             return answer, address
         else:
 
-            raise packet.get_fail_reason()  # type: ignore
+            raise answer.get_fail_reason()  # type: ignore
 
-    def answer_handshake(self, address: Address, ok=True):
-        if ok:
+    def answer_handshake(self, address: Address, status=None):
+        if status == None:
             self.socket.send_to(AckFPacket(0).encode(), address)
         else:
-            return
+            self.socket.send_to(ErrorPacket.from_exception(status).encode(), address)
+            
 
     """
     Inicia un upload de datos
@@ -76,8 +76,9 @@ class ConnectionRFTP(ABC):
     def upload(
             self, filename: str, data: bytes, address: tuple[str, int]
             ) -> None:
-
-        self.send_handshake(WriteRequestPacket(filename), address)
+        
+        _answer, address = self.send_handshake(WriteRequestPacket(filename), address)
+        print("Handshaked")
         self.sendto(data, address)
 
     """
@@ -85,13 +86,14 @@ class ConnectionRFTP(ABC):
     """
 
     def download(self, filename: str, address: tuple[str, int]) -> bytes:
-        self.send_handshake(ReadRequestPacket(filename), address)
+        _answer, address = self.send_handshake(ReadRequestPacket(filename), address)
+        print("Handshaked")
+        
         return self.recieve_file()
 
     def recieve_file(self) -> bytes:
         packet, _address = self.recieve_from()
         # Chekear que sea de data
-        
         packet = DataFPacket.decode_as_data(packet)
         self.segmenter.add_segment(packet)
         while len(packet.encode()) >= DATASIZE:

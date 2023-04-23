@@ -1,16 +1,15 @@
 import argparse
 from argparse import ArgumentParser
-import socket
 
-from lib.connection import StopAndWaitConnection
-from lib.packet import ReadRequestPacket
+from lib.connection import ConnectionRFTP
+from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
 
 
 def start_parser() -> "ArgumentParser":
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog="Download parser",
         description="Allows to parse download flags received by command line",
     )
@@ -19,10 +18,10 @@ def start_parser() -> "ArgumentParser":
     group.add_argument("-v", "--verbose", help="increase output verbosity")
     group.add_argument("-q", "--quiet", help="decrease output verbosity")
 
-    parser.add_argument("-H", "--host", type=int, help="server IP address", nargs=1)
-    parser.add_argument("-p", "--port", type=int, help="server port", nargs=1)
-    parser.add_argument("-d", "--dst", help="destination file path", nargs=1)
-    parser.add_argument("-n", "--name", help="file name", nargs=1)
+    parser.add_argument("-H", "--host", type=str, help="server IP address")
+    parser.add_argument("-p", "--port", type=int, help="server port")
+    parser.add_argument("-d", "--dst", help="destination file path")
+    parser.add_argument("-n", "--name", help="file name")
 
     return parser
 
@@ -32,16 +31,11 @@ def main(arguments):
         print("no address given")
         return -1
 
-    server_address = (arguments.host, arguments.port)
-    connection = StopAndWaitConnection(server_address)
-
-    request = ReadRequestPacket()
-    connection.send(request)
-
-    with open(arguments.name, "w") as file:
-        for packet in connection.receive():
-            # EXPLOTA SI NO ES UN DATA PACKET !
-            file.write(packet.data)
+    connection = ReliableTransportServer(("", 10002))
+    connection = ConnectionRFTP(connection)
+    file = connection.download(arguments.name,
+                               (arguments.host, arguments.port))
+    print(file.decode())
 
 
 if __name__ == "__main__":
