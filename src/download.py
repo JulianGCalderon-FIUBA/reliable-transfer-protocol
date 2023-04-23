@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from lib.client.client import Client
+from lib.logger import create_logger, quiet_log
 
 
 LOCALHOST = "127.0.0.1"
@@ -15,14 +16,18 @@ def start_parser() -> "ArgumentParser":
     )
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", help="increase output verbosity")
-    group.add_argument("-q", "--quiet", help="decrease output verbosity")
+    group.add_argument("-v", "--verbose", help="increase output verbosity",
+                       default=False, action='store_true')
+    group.add_argument("-q", "--quiet", help="decrease output verbosity",
+                       default=False, action='store_true')
 
     parser.add_argument(
         "-H", "--host", type=str, help="server IP address", required=True
     )
-    parser.add_argument("-p", "--port", type=int, help="server port", required=True)
-    parser.add_argument("-d", "--dst", help="destination file path", required=True)
+    parser.add_argument("-p", "--port", type=int,
+                        help="server port", required=True)
+    parser.add_argument("-d", "--dst",
+                        help="destination file path", required=True)
     parser.add_argument("-n", "--name", help="file name", required=True)
 
     return parser
@@ -32,7 +37,11 @@ def main(arguments):
     address = (arguments.host, arguments.port)
     local_path = arguments.name
     remote_path = arguments.dst
-    Client(address, local_path, remote_path).download()
+    create_logger(arguments.verbose, arguments.quiet)
+    try:
+        Client(address, local_path, remote_path).download()
+    except Exception as e:
+        quiet_log("Error: " + e.__str__())
 
 
 if __name__ == "__main__":

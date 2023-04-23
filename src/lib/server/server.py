@@ -1,4 +1,5 @@
 import os
+from lib.logger import verbose_log
 from lib.packet import (
     TransportPacket,
 )
@@ -19,6 +20,8 @@ class Server:
             os.makedirs(root_directory)
 
     def accept(self):
+        verbose_log(f"Waiting for requests at: {self.address}")
         data, address = self.socket.recv_from()
         packet = TransportPacket.decode(data)
+        verbose_log(f"Recovered {packet.__class__.__name__}")
         self.request_handler.handle_request(packet, address)

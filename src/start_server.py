@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from argparse import ArgumentParser
+from lib.logger import create_logger, quiet_log
 
 from lib.server.server import Server
 
@@ -39,9 +40,13 @@ def start_parser() -> "ArgumentParser":
 
 
 def main(arguments):
+    create_logger(arguments.verbose, arguments.quiet)
     server = Server((arguments.host, arguments.port), arguments.storage)
     while True:
-        server.accept()
+        try:
+            server.accept()
+        except Exception as e:
+            quiet_log("Error: " + e.__str__())
 
 
 if __name__ == "__main__":

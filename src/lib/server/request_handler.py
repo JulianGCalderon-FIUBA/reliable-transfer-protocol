@@ -1,6 +1,7 @@
 import os
 from threading import Thread
-from lib.exceptions import FilenNotExists
+from lib.exceptions import FileExists, FilenNotExists
+from lib.logger import normal_log
 from lib.packet import (
     TransportPacket,
     ReadRequestPacket,
@@ -24,24 +25,25 @@ class Handler:
         elif isinstance(request, WriteRequestPacket):
             return self.check_write_request(request, address)
 
-        print("Received unknown packet type, ignoring...")
+        normal_log("Received unknown packet type, ignoring...")
 
     def check_write_request(
             self, request: WriteRequestPacket, address: Address
             ):
         absolute_path = self.absolute_path(request.name)
+        normal_log(f"Recieved upload request from: {address}")
         if path.exists(absolute_path):
-            ErrorWorker(address, FileExistsError()).run()
+            ErrorWorker(address, FileExists()).run()
             return
         WriteWorker(address, absolute_path).run()
 
     def check_read_request(self, request: ReadRequestPacket, address: Address):
         absolute_path = self.absolute_path(request.name)
 
+        normal_log(f"Recieved download request from: {address}")
         if not path.exists(absolute_path):
             ErrorWorker(address, FilenNotExists()).run()
             return
-
         ReadWorker(address, absolute_path).run()
 
     def absolute_path(self, relative_path: str) -> str:
