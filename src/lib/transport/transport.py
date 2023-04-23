@@ -120,7 +120,7 @@ class ReliableTransportProtocol:
         sin recibir ningun paquete por parte del destinatario, se asume que
         la conexion se ha perdido y se cierra el socket. Esto evita que se
         quede esperando indefinidamente a que se confirme un paquete que
-        nunca llegara, pero implica que los ultimos paquetes enviado pueden
+        nunca llegara, pero implica que los ultimos paquetes enviados pueden
         perderse."""
 
         self.online = False
