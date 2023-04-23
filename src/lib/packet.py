@@ -72,8 +72,8 @@ def class_for_opcode(opcode: int) -> type[TransportPacket]:
             return AckFPacket
         case OPCODES.ERROR:
             return ErrorPacket
-        case _:
-            raise ValueError("invalid opcode")
+        
+        case _: raise ValueError("invalid opcode")
 
 
 """
@@ -233,5 +233,4 @@ class ErrorPacket(TransportPacket):
                 return FailedHandshake()
             case ERRORCODES.INVALIDPACKET:
                 return InvalidPacket()
-            case _:
-                return Exception()
+            case _: return Exception()
