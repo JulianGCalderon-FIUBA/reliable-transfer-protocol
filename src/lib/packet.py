@@ -213,7 +213,7 @@ class ErrorPacket(TransportPacket):
 
     @classmethod
     def from_exception(cls, exception: Exception) -> "ErrorPacket":
-        
+
         if isinstance(exception, FileExists):
             return cls(ERRORCODES.FILEEXISTS)
 

@@ -7,6 +7,7 @@ VERBOSE = logging.DEBUG
 
 logger = logging.Logger(__name__)
 
+
 def create_logger(verbose: bool, quiet: bool):
     level = NORMAL
     if verbose:
