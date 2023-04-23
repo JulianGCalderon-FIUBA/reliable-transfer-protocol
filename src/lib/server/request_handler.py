@@ -9,22 +9,46 @@ from lib.packet import (
     ErrorPacket,
     AckFPacket,
 )
-from lib.server.request_handler import Handler
 from lib.transport.consts import Address
 from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
 from os import path
 
 
-class Server:
-    def __init__(self, address: Address, root_directory: str):
-        self.socket = ReliableTransportServer(address)
-        self.request_handler = Handler(root_directory)
-        self.address = address
+class Handler:
 
-    def accept(self):
-        data, address = self.socket.recv_from()
-        packet = TransportPacket.decode(data)
-        self.request_handler.handle_request(packet, address)
+    def __init__(self, root_directory: str):
+        self.root_directory = root_directory
+        pass
+
+    def handle_request(self, packet: 'TransportPacket', address: Address):
+        Thread(target=self.check_request, args=[packet, address]).start()
+
+    def check_request(self, request: TransportPacket, address: Address):
+        if isinstance(request, ReadRequestPacket):
+            return self.check_read_request(request, address)
+        elif isinstance(request, WriteRequestPacket):
+            return self.check_write_request(request, address)
+
+        print("Received unknown packet type, ignoring...")
+
+    def check_write_request(self, request: WriteRequestPacket, address: Address):
+        absolute_path = self.absolute_path(request.name)
+        if path.exists(absolute_path):
+            ErrorWorker(address, FileExistsError()).run()
+            return
+        WriteWorker(address, absolute_path).run()
+
+    def check_read_request(self, request: ReadRequestPacket, address: Address):
+        absolute_path = self.absolute_path(request.name)
+
+        if not path.exists(absolute_path):
+            ErrorWorker(address, FilenNotExists()).run()
+            return
+
+        ReadWorker(address, absolute_path).run()
+
+    def absolute_path(self, relative_path: str) -> str:
+        return os.path.join(self.root_directory, relative_path)
 
 
 class ErrorWorker:
