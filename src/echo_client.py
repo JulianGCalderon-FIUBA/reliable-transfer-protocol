@@ -16,3 +16,5 @@ for element in [str(n) for n in range(25)]:
 for i in range(25):
     data = transportSR.recv()
     print(f"Recibo: {data.decode()}")
+
+transportSR.close()

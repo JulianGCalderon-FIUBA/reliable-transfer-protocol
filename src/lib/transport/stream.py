@@ -78,15 +78,14 @@ class ReliableStream:
         """
         Envia el DataPacket especificado y comienza el timer correspondiente."""
 
-        self._send_packet(packet)
         self._start_timer_for(packet)
+        self._send_packet(packet)
 
     def _resend_data_packet(self, packet: DataPacket):
         """
         Reenvia el DataPacket especificado."""
 
         self.timers.pop(packet.sequence).cancel()
-
         self._send_data_packet(packet)
 
     def _start_timer_for(self, packet: DataPacket):
@@ -173,3 +172,9 @@ class ReliableStream:
         while self.buffer.get(self.expected.value):
             self._queue_packet(self.buffer.pop(self.expected.value))
             self.expected.increase()
+
+    def has_unacked_packets(self) -> bool:
+        """
+        Retorna True si hay paquetes sin acknowledgment."""
+
+        return len(self.timers) > 0
