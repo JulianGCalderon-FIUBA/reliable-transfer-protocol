@@ -65,7 +65,7 @@ class ReliableTransportProtocol:
         Lee continuamente del socket y procesa los paquetes recibidos."""
 
         socket = self.socket.dup()
-        while self.online or self.has_unacked_packets():
+        while self.online or self._has_unacked_packets():
             try:
                 data, address = socket.recvfrom(BUFSIZE)
             except skt.error:
@@ -103,7 +103,7 @@ class ReliableTransportProtocol:
 
         self.socket.bind(address)
 
-    def has_unacked_packets(self):
+    def _has_unacked_packets(self):
         """
         Devuelve True si hay algun paquete sin confirmar."""
 
