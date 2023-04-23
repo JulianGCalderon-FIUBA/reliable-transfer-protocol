@@ -23,6 +23,9 @@ class Server:
         self.root_directory = root_directory
         self.address = address
 
+        if not os.path.exists(root_directory):
+            os.makedirs(root_directory)
+
     def accept(self):
         data, address = self.socket.recv_from()
         packet = TransportPacket.decode(data)

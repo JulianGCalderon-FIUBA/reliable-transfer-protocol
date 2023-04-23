@@ -28,7 +28,7 @@ def start_parser() -> "ArgumentParser":
     )
     parser.add_argument(
         "-p", "--port", type=int, help="service port", required=True
-    )  # Puerto donde escucha el servidor
+    )
     parser.add_argument(
         "-s", "--storage", default="storage/", type=str, help="storage dir path"
     )
