@@ -1,8 +1,5 @@
 #!/usr/bin/python3
 from argparse import ArgumentParser
-from lib.connection import ConnectionRFTP
-from lib.packet import DataFPacket, WriteRequestPacket
-from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
 from lib.client.client import Client
 
 SERVER_BUFF_SIZE = 512
@@ -12,7 +9,8 @@ def start_parser() -> "ArgumentParser":
     parser = ArgumentParser(
         prog="Upload parser",
         description="Allows to parse upload flags received by command line",
-        usage=" upload [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
+        usage=" upload [ - h ] [ - v | -q ] [ - H ADDR ] "
+        + "[ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
     )
 
     group = parser.add_mutually_exclusive_group()

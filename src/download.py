@@ -1,9 +1,6 @@
-import argparse
 from argparse import ArgumentParser
 from lib.client.client import Client
 
-from lib.connection import ConnectionRFTP
-from lib.transport.transport import ReliableTransportClient, ReliableTransportServer
 
 LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
@@ -13,7 +10,8 @@ def start_parser() -> "ArgumentParser":
     parser = ArgumentParser(
         prog="Download parser",
         description="Allows to parse download flags received by command line",
-        usage="download [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - d FILEPATH ] [ - n FILENAME ]",
+        usage="download [ - h ] [ - v | -q ] [ - H ADDR ] "
+        + "[ - p PORT ] [ - d FILEPATH ] [ - n FILENAME ]",
     )
 
     group = parser.add_mutually_exclusive_group()

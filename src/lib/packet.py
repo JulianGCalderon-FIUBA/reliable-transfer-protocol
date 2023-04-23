@@ -1,8 +1,13 @@
 from lib.constants import ERRORCODES, OPCODES, ENDIAN, END
 from abc import ABC, abstractmethod
 
-from lib.exceptions import FailedHandshake, FileExists, FilenNotExists, \
-    InvalidPacket, UnorderedPacket
+from lib.exceptions import (
+    FailedHandshake,
+    FileExists,
+    FilenNotExists,
+    InvalidPacket,
+    UnorderedPacket,
+)
 
 """
 Define la interfaz para la implementación de cada tipo de paquete
@@ -150,7 +155,7 @@ class DataFPacket(Packet):
         return cls(block, data)
 
     @classmethod
-    def decode_as_data(cls, stream: bytes) -> 'DataFPacket':
+    def decode_as_data(cls, stream: bytes) -> "DataFPacket":
         packet = Packet.decode(stream)
         if not isinstance(packet, DataFPacket):
             raise InvalidPacket()
@@ -158,9 +163,7 @@ class DataFPacket(Packet):
 
     def encode(self) -> bytes:
         return (
-            self.opcode.to_bytes(2, ENDIAN)
-            + self.block.to_bytes(2, ENDIAN)
-            + self.data
+            self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN) + self.data
         )
 
     def is_expected_answer(self, other: "Packet") -> bool:
@@ -198,31 +201,30 @@ class ErrorPacket(Packet):
         return cls(error_code)
 
     def encode(self) -> bytes:
-        return self.opcode.to_bytes(2, ENDIAN) \
-                + self.error_code.to_bytes(2, ENDIAN)
+        return self.opcode.to_bytes(2, ENDIAN) + self.error_code.to_bytes(2, ENDIAN)
 
     def is_expected_answer(self, other: "Packet") -> bool:
         # Devuelve False, no encontre que tenga un ACK, pero deberia
         # La RFC marca que funciona como ACK para cualquier tipo de paquete.
         return False
-    
+
     @classmethod
-    def from_exception(cls, exception: Exception) -> 'ErrorPacket':
+    def from_exception(cls, exception: Exception) -> "ErrorPacket":
         if isinstance(exception, UnorderedPacket):
             return cls(ERRORCODES.UNORDERED)
-        
+
         if isinstance(exception, FileExists):
             return cls(ERRORCODES.FILEEXISTS)
-        
+
         if isinstance(exception, FilenNotExists):
             return cls(ERRORCODES.FILENOTEXISTS)
-        
+
         if isinstance(exception, FailedHandshake):
             return cls(ERRORCODES.FAILEDHANDSHAKE)
-        
+
         if isinstance(exception, InvalidPacket):
             return cls(ERRORCODES.INVALIDPACKET)
-        
+
         return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:

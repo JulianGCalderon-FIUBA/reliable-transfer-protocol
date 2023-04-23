@@ -14,15 +14,14 @@ class CustomTopo(Topo):
         self.addLink(server, switch, loss=LINK_LOSS)
 
         for i in range(0, hosts):
-            host = self.addHost("host_" + str(i+1))
+            host = self.addHost("host_" + str(i + 1))
             self.addLink(host, switch, cls=TCLink, loss=LINK_LOSS)
 
 
 parser = argparse.ArgumentParser(
     prog="Topology", description="Amount of hosts for the server topology"
 )
-parser.add_argument(
-    '-a', '--amount', default=MIN_HOST_AMOUNT, type=int, nargs=1)
+parser.add_argument("-a", "--amount", default=MIN_HOST_AMOUNT, type=int, nargs=1)
 args = parser.parse_args()
 hosts = args.amount
 

@@ -2,12 +2,10 @@
 Define la interfaz para la implementacion de conexiones de distinto tipo
 """
 from abc import ABC
-from lib.constants import DATASIZE, WILDCARD_ADDRESS
+from lib.constants import DATASIZE
 from lib.segmentation import Segmenter
 from lib.packet import (
-    AckFPacket,
     DataFPacket,
-    ErrorPacket,
     Packet,
     ReadRequestPacket,
     WriteRequestPacket,
@@ -15,7 +13,6 @@ from lib.packet import (
 
 from lib.transport.transport import (
     Address,
-    ReliableTransportProtocol,
     ReliableTransportClient,
 )
 
