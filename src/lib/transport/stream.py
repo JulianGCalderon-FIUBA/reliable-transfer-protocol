@@ -192,4 +192,8 @@ class ReliableStream:
         return len(self.timers) > 0
 
     def close(self):
+        """
+        Prepara el cierra del stream. Esto implica cancelar timers en
+        caso de que se detecte que el destinatario ha cerrado la conexión."""
+
         self.online = False
