@@ -1,7 +1,8 @@
+import os
 import random
 from threading import Thread
 from lib.connection import ConnectionRFTP
-from lib.exceptions import FailedHandshake, FileExists, FilenNotExists
+from lib.exceptions import FilenNotExists
 from lib.packet import (
     Packet,
     ReadRequestPacket,
@@ -17,64 +18,45 @@ random.seed(123)
 
 
 class Server:
-    def __init__(self, address: Address, root_directory=".") -> None:
+    def __init__(self, address: Address, root_directory: str):
         self.socket = ReliableTransportServer(address)
         self.root_directory = root_directory
         self.address = address
 
-    def listen(self) -> None:
-        while True:
-            packet, address = self.socket.recv_from()
-            handshake, from_where = Packet.decode(packet), address
-            self.check_request(handshake, from_where)
+    def accept(self):
+        data, address = self.socket.recv_from()
+        packet = Packet.decode(data)
+        self.check_request(packet, address)
 
-    def check_request(self, request: "Packet", address: Address):
+    def check_request(self, request: Packet, address: Address):
         if isinstance(request, ReadRequestPacket):
             return self.check_read_request(request, address)
         elif isinstance(request, WriteRequestPacket):
             return self.check_write_request(request, address)
-        print(request)
-        raise FailedHandshake()
 
-    def check_write_request(self, request: "WriteRequestPacket", address: Address):
-        file_path = self.build_file_path(request.name)
-        if path.exists(file_path):
-            self.socket.send_to(
-                ErrorPacket.from_exception(FileExists()).encode(), address
-            )
+        print("Received unknown packet type, ignoring...")
+
+    def check_write_request(self, request: WriteRequestPacket, address: Address):
+        absolute_path = self.absolute_path(request.name)
+
+        WriteWorker(address, absolute_path).start_thread()
+
+    def check_read_request(self, request: ReadRequestPacket, address: Address):
+        absolute_path = self.absolute_path(request.name)
+
+        if not path.exists(absolute_path):
+            error_packet = ErrorPacket.from_exception(FilenNotExists()).encode()
+            self.socket.send_to(error_packet, address)
             return
 
-        self.attempt_request(address, file_path, write=True)
+        ReadWorker(address, absolute_path).start_thread()
 
-    def check_read_request(self, request: "ReadRequestPacket", address: Address):
-        file_path = self.build_file_path(request.name)
-        if not path.exists(file_path):
-            self.socket.send_to(
-                ErrorPacket.from_exception(FilenNotExists()).encode(), address
-            )
-            return
-
-        self.attempt_request(address, file_path, write=False)
-
-    def attempt_request(self, target_address: Address, file_path: str, write):
-        try:
-            if write:
-                WriteWorker(target_address, file_path).start_thread()
-            else:
-                ReadWorker(target_address, file_path).start_thread()
-            return
-        except Exception as e:
-            print(e)
-            self.socket.send_to(
-                ErrorPacket.from_exception(Exception()).encode(), target_address
-            )
-
-    def build_file_path(self, filename: str) -> str:
-        return self.root_directory + filename
+    def absolute_path(self, relative_path: str) -> str:
+        return os.path.join(self.root_directory, relative_path)
 
 
 class WriteWorker:
-    def __init__(self, target_address: Address, path_to_file: str) -> None:
+    def __init__(self, target_address: Address, path_to_file: str):
         self.dump = open(path_to_file, "w")
         self.socket = ReliableTransportClient(target_address)
         self.connection = ConnectionRFTP(self.socket)
@@ -84,15 +66,23 @@ class WriteWorker:
         Thread(target=self.run).start()
 
     def run(self):
-        self.socket.send_to(AckFPacket(0).encode(), self.target)
-        file = self.connection.recieve_file()
-        self.dump.write(file.decode())
-        self.dump.close()
-        return
+        try:
+            self.socket.send_to(AckFPacket(0).encode(), self.target)
+            file = self.connection.recieve_file()
+            self.dump.write(file.decode())
+            self.dump.close()
+        except Exception as exception:
+            self.on_worker_exception(self.target, exception)
+
+    def on_worker_exception(self, target_address, exception):
+        print("Error occured while fullfilling request:", exception)
+
+        error_packet = ErrorPacket.from_exception(Exception()).encode()
+        self.socket.send_to(error_packet, target_address)
 
 
 class ReadWorker:
-    def __init__(self, target_address: Address, path_to_file: str) -> None:
+    def __init__(self, target_address: Address, path_to_file: str):
         self.file_bytes = open(path_to_file, "r").read(-1).encode()
         self.socket = ReliableTransportClient(target_address)
         self.connection = ConnectionRFTP(self.socket)
@@ -102,10 +92,14 @@ class ReadWorker:
         Thread(target=self.run).start()
 
     def run(self):
-        self.socket.send(AckFPacket(0).encode())
-        self.connection.send(self.file_bytes)
-        return  # pending
+        try:
+            self.socket.send(AckFPacket(0).encode())
+            self.connection.send(self.file_bytes)
+        except Exception as exception:
+            self.on_worker_exception(self.target, exception)
 
+    def on_worker_exception(self, target_address, exception):
+        print("Error occured while fullfilling request:", exception)
 
-def get_random_port() -> int:
-    return random.randint(30000, 35000)
+        error_packet = ErrorPacket.from_exception(Exception()).encode()
+        self.socket.send_to(error_packet, target_address)
