@@ -18,7 +18,7 @@ class Client:
 
             data = upload_file.read(-1).encode()
 
-            ConnectionRFTP(self.socket).send(data)
+            ConnectionRFTP(self.socket).send_file(data)
 
             self.socket.close()
 

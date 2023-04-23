@@ -1,6 +1,7 @@
 """
 Define la interfaz para la implementacion de conexiones de distinto tipo
 """
+
 from abc import ABC
 from lib.constants import DATASIZE
 from lib.segmentation import Segmenter
@@ -18,13 +19,13 @@ class ConnectionRFTP(ABC):
         self.socket = socket
         self.segmenter = Segmenter()
 
-    def close(self) -> None:
+    def close(self):
         """
         Cierra el socket
         """
         pass
 
-    def send(self, data: bytes) -> None:
+    def send_file(self, data: bytes):
         """
         Envia los datos definidos en data a traves de la conexion
         """
@@ -34,8 +35,6 @@ class ConnectionRFTP(ABC):
             self.socket.send(packet.encode())
 
     def recieve_file(self) -> bytes:
-        print("self address:", self.socket.socket.getsockname())
-
         packet = self.socket.recv()
 
         # Chequear que sea de data

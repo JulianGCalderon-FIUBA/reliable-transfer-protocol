@@ -6,7 +6,6 @@ from lib.exceptions import (
     FileExists,
     FilenNotExists,
     InvalidPacket,
-    UnorderedPacket,
 )
 
 """
@@ -210,9 +209,6 @@ class ErrorPacket(Packet):
 
     @classmethod
     def from_exception(cls, exception: Exception) -> "ErrorPacket":
-        if isinstance(exception, UnorderedPacket):
-            return cls(ERRORCODES.UNORDERED)
-
         if isinstance(exception, FileExists):
             return cls(ERRORCODES.FILEEXISTS)
 
@@ -229,8 +225,6 @@ class ErrorPacket(Packet):
 
     def get_fail_reason(self) -> Exception:
         match self.error_code:
-            case ERRORCODES.UNORDERED:
-                return UnorderedPacket()
             case ERRORCODES.FILEEXISTS:
                 return FileExists()
             case ERRORCODES.FILENOTEXISTS:

@@ -94,7 +94,7 @@ class ReadWorker:
     def run(self):
         try:
             self.socket.send(AckFPacket(0).encode())
-            self.connection.send(self.file_bytes)
+            self.connection.send_file(self.file_bytes)
         except Exception as exception:
             self.on_worker_exception(self.target, exception)
 
