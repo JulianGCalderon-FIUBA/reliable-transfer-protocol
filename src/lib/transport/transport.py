@@ -57,9 +57,6 @@ class ReliableTransportProtocol:
         if target[0] is None or target[1] is None:
             raise InvalidAddress()
 
-        print("Length: ", len(data))
-        print("Address:", {target})
-
         self._stream_for_address(target).send(data)
 
     def _spawn_reader(self):

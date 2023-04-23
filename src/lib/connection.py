@@ -16,15 +16,6 @@ class ConnectionRFTP(ABC):
         self.segmenter = Segmenter()
 
     """
-    Espera por una nueva conexion y devuelve otra
-    """
-
-    def listen(self) -> tuple["Packet", Address]:
-        packet, address = self.socket.recv_from()
-        
-        return Packet.decode(packet), address
-
-    """
     Cierra el socket
     """
 
@@ -62,13 +53,6 @@ class ConnectionRFTP(ABC):
 
             raise answer.get_fail_reason()  # type: ignore
 
-    def answer_handshake(self, address: Address, status=None):
-        if status == None:
-            self.socket.send_to(AckFPacket(0).encode(), address)
-        else:
-            self.socket.send_to(ErrorPacket.from_exception(status).encode(), address)
-            
-
     """
     Inicia un upload de datos
     """
@@ -105,9 +89,3 @@ class ConnectionRFTP(ABC):
             self.segmenter.add_segment(packet)
 
         return self.segmenter.desegment()
-
-
-def bind_ephemeral_port(client_socket):
-    client_socket.bind(
-        (WILDCARD_ADDRESS, 4567)
-    )  # the port here should be chosen at random

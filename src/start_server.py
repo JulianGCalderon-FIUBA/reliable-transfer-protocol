@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import threading
 import socket
 
@@ -26,13 +27,13 @@ def start_parser() -> "ArgumentParser":
                        help="decrease output verbosity")
 
     parser.add_argument(
-        "-H", "-host", default="0.0.0.0", type=str, help="service IP address"
+        "-H", "--host", default="0.0.0.0", type=str, help="service IP address"
     )
     parser.add_argument(
-        "-p", "--port", default=9999, type=int, help="service port"
+        "-p", "--port", type=int, help="service port", required=True
     )  # Puerto donde escucha el servidor
-    parser.add_argument("-s", "--storage", default=".",
-                        type=str, help="storage dir path")
+    parser.add_argument("-s", "--storage",
+                        type=str, help="storage dir path", required=True)
 
     return parser
 
@@ -48,9 +49,8 @@ def handle_client(client_sckt):
 
 
 def main(arguments):
-    server = Server(("", 10000), "/home/franciscojavierpereira/Documents/redes/tpredes/")
-    while True:
-        server.listen()
+    server = Server((arguments.host, arguments.port),arguments.storage)
+    server.listen()
 
 
 if __name__ == "__main__":

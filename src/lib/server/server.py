@@ -2,7 +2,7 @@ import random
 from threading import Thread, Lock
 from lib.connection import ConnectionRFTP
 from lib.exceptions import FailedHandshake, FileExists, FilenNotExists
-from lib.packet import Packet, ReadRequestPacket, WriteRequestPacket
+from lib.packet import Packet, ReadRequestPacket, WriteRequestPacket, ErrorPacket, AckFPacket
 from lib.transport.consts import Address
 from lib.transport.transport import \
     ReliableTransportClient, ReliableTransportServer
@@ -35,18 +35,17 @@ class ConnectionDirectory:
 class Server:
 
     def __init__(self, address: Address, root_directory=".") -> None:
-        self.connection = ConnectionRFTP(
-            ReliableTransportServer(address)
-        )
+        self.socket = ReliableTransportServer(address)
         self.connections = ConnectionDirectory()
         self.root_directory = root_directory
         self.address = address
 
     def listen(self) -> None:
-        print("Listening")
-        handshake, from_where = self.connection.listen()
+        while True:
+            packet, address = self.socket.recv_from()
+            handshake, from_where = Packet.decode(packet), address        
+            self.check_request(handshake, from_where)
 
-        self.check_request(handshake, from_where)
 
     def check_request(self, request: 'Packet', address: Address):
 
@@ -63,8 +62,9 @@ class Server:
         print("Attempting an upload")
         file_path = self.build_file_path(request.name)
         if path.exists(file_path):
-            self.connection.answer_handshake(address, status=FileExists())
+            self.socket.send_to(ErrorPacket.from_exception(FileExists()).encode(), address)
             return
+            
         self.attempt_request((self.address[0], get_random_port()),
                              address,
                              file_path)
@@ -74,8 +74,9 @@ class Server:
                            address: Address):
         file_path = self.build_file_path(request.name)
         if not path.exists(file_path):
-            self.connection.answer_handshake(address, status=FilenNotExists())
+            self.socket.send_to(ErrorPacket.from_exception(FilenNotExists()).encode(), address)
             return
+
 
         self.attempt_request((self.address[0], get_random_port()),
                              address,
@@ -86,24 +87,18 @@ class Server:
             self, worker_address: Address, target_address: Address,
             file_path: str, write=True
             ):
+        try:
 
-        attempts = 0
-        while attempts < 3:
-            try:
-                worker = WriteWorker(
-                    worker_address, target_address, file_path, self.connections
-                    ) if write else ReadWorker(
-                        worker_address, target_address,
-                        file_path, self.connections
-                    )
-                
-                worker.start_thread()
-                return
-            except Exception as e:
-                print(e)
-                worker_address = (worker_address[0], get_random_port())
-                attempts += 1
-        self.connection.answer_handshake(target_address, status=Exception())
+            if write:
+                WriteWorker(target_address, file_path, self.connections).start_thread()
+            else:
+                ReadWorker(target_address, file_path, self.connections).start_thread()
+
+            return
+        except Exception as e:
+            print(e)
+            self.socket.send_to(ErrorPacket.from_exception(Exception()).encode(), target_address)
+            
 
     def build_file_path(self, filename: str) -> str:
         return self.root_directory + filename
@@ -111,22 +106,20 @@ class Server:
 
 class WriteWorker:
 
-    def __init__(self, self_address: Address, address: Address,
+    def __init__(self, target_address: Address,
                  path_to_file: str, connections: ConnectionDirectory) -> None:
         self.dump = open(path_to_file, 'w')
-        socket = ReliableTransportServer(self_address)
-        self.connection = ConnectionRFTP(
-            socket
-        )
-        self.target = address
+        self.socket = ReliableTransportClient(target_address)
+        self.connection = ConnectionRFTP(self.socket)
+        self.target = target_address
         self.directory = connections
-        self.directory.add_connection(address, self_address)
+        self.directory.add_connection(target_address, target_address) # pending
 
     def start_thread(self):
         Thread(target=self.run).start()
 
     def run(self):
-        self.connection.answer_handshake(self.target)
+        self.socket.send_to(AckFPacket(0).encode(), self.target)
         file = self.connection.recieve_file()
         print(f"Writing to file at: {self.dump}")
         self.dump.write(file.decode())
@@ -137,29 +130,27 @@ class WriteWorker:
 
 class ReadWorker:
 
-    def __init__(self, self_address: Address, address: Address,
+    def __init__(self, target_address: Address,
                  path_to_file: str, connections: ConnectionDirectory) -> None:
         
         self.dump = open(path_to_file, 'r').read(-1).encode()
-        socket = ReliableTransportServer(self_address)
-        self.connection = ConnectionRFTP(
-            socket
-        )
-        self.target = address
-        self.directory = connections
-        self.directory.add_connection(address, self_address)
-
-    def start_thread(self):
-        Thread(target=self.run).start()
-
-    def run(self):
-        print("Sending!!")
-        self.connection.answer_handshake(self.target)
-        print("Handshake sent")
-        self.connection.sendto(self.dump, self.target)
-        print("Data sent")
-        self.directory.delete_connection(self.target)
-        return
+        self.socket = ReliableTransportClient(target_address)
+        self.connection = ConnectionRFTP(self.socket) #pending
+        self.target = target_address #pending
+        self.directory = connections #pending
+        self.directory.add_connection(target_address, target_address) # pending #pending
+ #pending
+    def start_thread(self): #pending
+        Thread(target=self.run).start() #pending
+ #pending
+    def run(self): #pending
+        print("Sending!!") #pending
+        self.socket.send(AckFPacket(0).encode()) #pending
+        print("Handshake sent") #pending
+        self.connection.sendto(self.dump, self.target) #pending
+        print("Data sent") #pending
+        self.directory.delete_connection(self.target) #pending
+        return #pending
 
 
 def get_random_port() -> int:
