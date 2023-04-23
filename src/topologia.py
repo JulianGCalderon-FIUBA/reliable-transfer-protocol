@@ -1,7 +1,9 @@
 import argparse
 from mininet.topo import Topo
 from mininet.link import TCLink
-from lib.constants import DEFAULT_HOST_AMOUNT, DEFAULT_LINK_LOSS
+
+DEFAULT_HOST_AMOUNT = 1
+DEFAULT_LINK_LOSS = 10
 
 
 class CustomTopo(Topo):
