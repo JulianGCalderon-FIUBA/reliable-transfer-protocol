@@ -1,15 +1,16 @@
 from mininet.topo import Topo
 from mininet.link import TCLink
 
-MIN_HOST_AMOUNT = 1
-DEFAULT_LINK_LOSS = 10
+
+HOST_AMOUNT = 1
+LINK_LOSS = 10
 
 
 class CustomTopo(Topo):
-    def __init__(self, size=MIN_HOST_AMOUNT, loss=DEFAULT_LINK_LOSS):
+    def __init__(self, size=HOST_AMOUNT, loss=LINK_LOSS):
         Topo.__init__(self, size)
         server = self.addHost("server")
-        switch = self.addSwitch("switch")
+        switch = self.addSwitch("s1")
 
         self.addLink(server, switch, loss=loss)
 
