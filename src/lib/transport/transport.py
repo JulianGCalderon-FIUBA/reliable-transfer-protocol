@@ -1,4 +1,5 @@
 from queue import Queue
+
 from random import random
 import threading
 from typing import Tuple, Dict
@@ -28,9 +29,11 @@ class ReliableTransportProtocol:
 
     def __init__(self):
         self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
+        self.socket.settimeout(1)
 
         self.recv_queue = Queue()
         self.streams: Dict[Address, ReliableStream] = {}
+        self.online = True
 
         self._spawn_reader()
 
@@ -62,12 +65,18 @@ class ReliableTransportProtocol:
         Lee continuamente del socket y procesa los paquetes recibidos."""
 
         socket = self.socket.dup()
-        while True:
-            data, address = socket.recvfrom(BUFSIZE)
-            
+        while self.online or self._has_unacked_packets():
+            try:
+                data, address = socket.recvfrom(BUFSIZE)
+            except skt.error:
+                continue
+
             # MANUAL PACKET LOSS
             while random() < 0.1:
-                data, address = socket.recvfrom(BUFSIZE)
+                try:
+                    data, address = socket.recvfrom(BUFSIZE)
+                except skt.error:
+                    continue
             # MANUAL PACKET LOSS
 
             self._stream_for_address(address).handle_packet(data)
@@ -93,6 +102,35 @@ class ReliableTransportProtocol:
         Asocia el socket a la direccion especificada."""
 
         self.socket.bind(address)
+
+    def _has_unacked_packets(self):
+        """
+        Devuelve True si hay algun paquete sin confirmar."""
+
+        return any(
+            map(lambda stream: stream.has_unacked_packets(), self.streams.values())
+        )
+
+    def close(self):
+        """
+        Cierra el socket, liberando los recursos asociados a el.
+
+        Antes de cerrar el socket, espera a que se hayan confirmado todos
+        paquetes enviados. Si ocurre una gran cantidad consecutiva de timeouts
+        sin recibir ningun paquete por parte del destinatario, se asume que
+        la conexion se ha perdido y se cierra el socket. Esto evita que se
+        quede esperando indefinidamente a que se confirme un paquete que
+        nunca llegara, pero implica que los ultimos paquetes enviados pueden
+        perderse."""
+
+        self.online = False
+
+        for stream in self.streams.values():
+            stream.close()
+
+        self.thread_handle.join()
+
+        self.socket.close()
 
 
 class ReliableTransportClient(ReliableTransportProtocol):

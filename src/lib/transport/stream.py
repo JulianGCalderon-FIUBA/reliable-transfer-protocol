@@ -2,7 +2,7 @@ from queue import Queue
 from socket import socket
 from threading import Semaphore, Timer
 from typing import Dict
-from lib.transport.consts import TIMER, WINDOW_SIZE, Address
+from lib.transport.consts import DROP_THRESHOLD, TIMER, WINDOW_SIZE, Address
 
 from lib.transport.packet import (
     SEQUENCE_BYTES,
@@ -58,6 +58,8 @@ class ReliableStream:
         self.buffer: Dict[int, bytes] = {}
         self.timers: Dict[int, Timer] = {}
         self.window_semaphore = Semaphore(WINDOW_SIZE)
+        self.consecutive_interrupts = 0
+        self.online = True
 
         self.socket = socket
         self.target = target
@@ -78,14 +80,21 @@ class ReliableStream:
         """
         Envia el DataPacket especificado y comienza el timer correspondiente."""
 
-        self._send_packet(packet)
         self._start_timer_for(packet)
+        self._send_packet(packet)
 
     def _resend_data_packet(self, packet: DataPacket):
         """
-        Reenvia el DataPacket especificado."""
+        Reenvia el DataPacket especificado. Si se alcanza el umbral de
+        interrupciones consecutivas, se ignora. Esto permite que el
+        stream frene ante el cierre de la conexión por parte del
+        destinatario."""
 
         self.timers.pop(packet.sequence).cancel()
+
+        self.consecutive_interrupts += 1
+        if self.consecutive_interrupts >= DROP_THRESHOLD and not self.online:
+            return
 
         self._send_data_packet(packet)
 
@@ -107,6 +116,8 @@ class ReliableStream:
             packet = Packet.decode(data)
         except InvalidPacketException:
             return
+
+        self.consecutive_interrupts = 0
 
         if isinstance(packet, AckPacket):
             self._handle_ack(packet)
@@ -173,3 +184,16 @@ class ReliableStream:
         while self.buffer.get(self.expected.value):
             self._queue_packet(self.buffer.pop(self.expected.value))
             self.expected.increase()
+
+    def has_unacked_packets(self) -> bool:
+        """
+        Retorna True si hay paquetes sin acknowledgment."""
+
+        return len(self.timers) > 0
+
+    def close(self):
+        """
+        Prepara el cierra del stream. Esto implica cancelar timers en
+        caso de que se detecte que el destinatario ha cerrado la conexión."""
+
+        self.online = False

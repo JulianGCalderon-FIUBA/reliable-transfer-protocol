@@ -12,5 +12,7 @@ transportSR = ReliableTransportServer((ANY_ADDRESS, args.port))
 
 for i in range(25):
     data, target = transportSR.recv_from()
-    print(f"Recibo: {data.decode()} de: {target} y reenvio")
+    print(f"Recibo: {data.decode()} de: {target} y reenvio.")
     transportSR.send_to(data, target)
+
+transportSR.close()
