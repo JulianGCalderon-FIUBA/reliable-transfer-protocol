@@ -64,7 +64,7 @@ class ReliableTransportProtocol:
         socket = self.socket.dup()
         while True:
             data, address = socket.recvfrom(BUFSIZE)
-
+            
             # MANUAL PACKET LOSS
             while random() < 0.1:
                 data, address = socket.recvfrom(BUFSIZE)

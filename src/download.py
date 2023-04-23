@@ -31,7 +31,7 @@ def main(arguments):
         print("no address given")
         return -1
 
-    connection = ReliableTransportServer(("", 10001))
+    connection = ReliableTransportServer(("", 10002))
     connection = ConnectionRFTP(connection)
     file = connection.download(arguments.name,
                                (arguments.host, arguments.port))
