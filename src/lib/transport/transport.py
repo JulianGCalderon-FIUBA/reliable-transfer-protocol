@@ -114,9 +114,20 @@ class ReliableTransportProtocol:
     def close(self):
         """
         Cierra el socket, liberando los recursos asociados a el.
-        """
+
+        Antes de cerrar el socket, espera a que se hayan confirmado todos
+        paquetes enviados. Si ocurre una gran cantidad consecutiva de timeouts
+        sin recibir ningun paquete por parte del destinatario, se asume que
+        la conexion se ha perdido y se cierra el socket. Esto evita que se
+        quede esperando indefinidamente a que se confirme un paquete que
+        nunca llegara, pero implica que los ultimos paquetes enviado pueden
+        perderse."""
 
         self.online = False
+
+        for stream in self.streams.values():
+            stream.close()
+
         self.thread_handle.join()
 
 

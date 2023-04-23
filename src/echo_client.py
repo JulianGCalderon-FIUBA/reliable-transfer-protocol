@@ -10,11 +10,12 @@ args = parser.parse_args()
 transportSR = ReliableTransportClient((args.ip, args.port))
 
 for element in [str(n) for n in range(25)]:
-    print(f"Envio: {element}")
+    print(f"Envio: {element}.")
     transportSR.send(element.encode())
 
 for i in range(25):
     data = transportSR.recv()
-    print(f"Recibo: {data.decode()}")
+    print(f"Recibo: {data.decode()}.")
+
 
 transportSR.close()
