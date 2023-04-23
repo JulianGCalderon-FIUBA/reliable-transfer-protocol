@@ -22,18 +22,21 @@ class Segmenter:
 
         return segment_bytes
 
-    def add_segment(self, data: "DataFPacket"):
+    def add_segment(self, data: DataFPacket):
         if self.check_last_segment(data.block):
             self.segments.append(data)
             self.advance_seq_number()
             return
         raise UnorderedPacket(self.expected_segment, data.block)
 
-    def get_next(self) -> "Packet":
+    def __iter__(self):
+        return self
+
+    def __next__(self) -> Packet:
         if len(self.segments) == 0:
-            return None  # type: ignore
+            raise StopIteration
+
         return self.segments.pop(0)
-        # Devolver un error si me pase
 
     def check_last_segment(self, new_segment: int) -> bool:
         return self.expected_segment == new_segment
