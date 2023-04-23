@@ -2,13 +2,9 @@ from mininet.topo import Topo
 from mininet.link import TCLink
 
 
-HOST_AMOUNT = 1
-LINK_LOSS = 10
-
-
 class CustomTopo(Topo):
-    def __init__(self, size=HOST_AMOUNT, loss=LINK_LOSS):
-        Topo.__init__(self, size)
+    def __init__(self, size, loss):
+        Topo.__init__(self)
         server = self.addHost("server")
         switch = self.addSwitch("s1")
 
@@ -22,11 +18,10 @@ class CustomTopo(Topo):
 # parser = argparse.ArgumentParser(
 #     prog="Topology", description="Amount of hosts for the server topology"
 # )
-
-# parser.add_argument("-s", "--size", default=DEFAULT_HOST_AMOUNT, type=int, nargs=1)
+# parser.add_argument("-s", "--size", default=MIN_HOST_AMOUNT, type=int, nargs=1)
 # parser.add_argument("-l", "--loss", default=DEFAULT_LINK_LOSS, type=int, nargs=1)
 # args = parser.parse_args()
 # size = args.size
 # loss = args.loss
 
-topos = {"customTopo": (lambda: CustomTopo())}
+topos = {"customTopo": (lambda size, loss: CustomTopo(size, loss))}

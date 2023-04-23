@@ -78,14 +78,6 @@ class ReliableTransportProtocol:
             except skt.error:
                 continue
 
-            # MANUAL PACKET LOSS
-            while random() < 0.1:
-                try:
-                    data, address = socket.recvfrom(BUFSIZE)
-                except skt.error:
-                    continue
-            # MANUAL PACKET LOSS
-
             self._stream_for_address(address).handle_packet(data)
 
     def _stream_for_address(self, address):

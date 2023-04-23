@@ -12,11 +12,10 @@ from os import path
 
 
 class Handler:
-
     def __init__(self, root_directory: str):
         self.root_directory = root_directory
 
-    def handle_request(self, packet: 'TransportPacket', address: Address):
+    def handle_request(self, packet: "TransportPacket", address: Address):
         Thread(target=self.check_request, args=[packet, address]).start()
 
     def check_request(self, request: TransportPacket, address: Address):
