@@ -1,6 +1,5 @@
 from queue import Queue
 
-from random import random
 import threading
 from typing import Tuple, Dict
 import socket as skt
@@ -11,7 +10,8 @@ from lib.transport.stream import ReliableStream
 
 """
 IMPORTANTE:
-- EL bufsize esta hardcodeado en 4096. Se podria hacer que sea configurable, pero
+- EL bufsize esta hardcodeado en 4096.
+    Se podria hacer que sea configurable, pero
     idealmente los packets deberian poder ser segmentados en caso de que sean
     demasiado grandes.
 - La implementación del stop and wait es un selective repeat, usando un
@@ -78,14 +78,6 @@ class ReliableTransportProtocol:
             except skt.error:
                 continue
 
-            # MANUAL PACKET LOSS
-            while random() < 0.1:
-                try:
-                    data, address = socket.recvfrom(BUFSIZE)
-                except skt.error:
-                    continue
-            # MANUAL PACKET LOSS
-
             self._stream_for_address(address).handle_packet(data)
 
     def _stream_for_address(self, address):
@@ -97,12 +89,9 @@ class ReliableTransportProtocol:
         nota: Al no haber un handshake, es vulnerable a ataques syn flood.
         """
 
-        if self.streams.get(address):
-            return self.streams[address]
-
-        self.streams[address] = ReliableStream(self.socket, address, self.recv_queue)
-
-        return self._stream_for_address(address)
+        return self.streams.setdefault(
+            address, ReliableStream(self.socket, address, self.recv_queue)
+        )
 
     def bind(self, address: Address):
         """
@@ -115,7 +104,10 @@ class ReliableTransportProtocol:
         Devuelve True si hay algun paquete sin confirmar."""
 
         return any(
-            map(lambda stream: stream.has_unacked_packets(), self.streams.values())
+            map(
+                lambda stream: stream.has_unacked_packets(),
+                self.streams.values()
+            )
         )
 
     def close(self):

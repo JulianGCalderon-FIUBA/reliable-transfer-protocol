@@ -1,15 +1,19 @@
 from lib.constants import ERRORCODES, OPCODES, ENDIAN, END
 from abc import ABC, abstractmethod
 
-from lib.exceptions import FailedHandshake, FileExists, FilenNotExists, \
-    InvalidPacket, UnorderedPacket
+from lib.exceptions import (
+    FailedHandshake,
+    FileExists,
+    FilenNotExists,
+    InvalidPacket,
+)
 
 """
 Define la interfaz para la implementación de cada tipo de paquete
 """
 
 
-class Packet(ABC):
+class TransportPacket(ABC):
     """
     Crea cada tipo de paquete particular manualmente
     a partir de los campos especificos
@@ -33,7 +37,7 @@ class Packet(ABC):
     """
 
     @classmethod
-    def decode(cls, stream: bytes) -> "Packet":
+    def decode(cls, stream: bytes) -> "TransportPacket":
         opcode = int.from_bytes(stream[:2], ENDIAN)
         stream = stream[2:]
 
@@ -45,7 +49,7 @@ class Packet(ABC):
     """
 
     @abstractmethod
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         pass
 
 
@@ -56,7 +60,7 @@ Lanza una excepción si el opcode es invalido
 """
 
 
-def class_for_opcode(opcode: int) -> type[Packet]:
+def class_for_opcode(opcode: int) -> type[TransportPacket]:
     match opcode:
         case OPCODES.RRQ:
             return ReadRequestPacket
@@ -68,6 +72,7 @@ def class_for_opcode(opcode: int) -> type[Packet]:
             return AckFPacket
         case OPCODES.ERROR:
             return ErrorPacket
+
         case _:
             raise ValueError("invalid opcode")
 
@@ -87,7 +92,7 @@ def read_field(stream: bytes) -> tuple[bytes, int]:
     return stream, len(stream)
 
 
-class WriteRequestPacket(Packet):
+class WriteRequestPacket(TransportPacket):
     def __init__(self, name):
         self.opcode: int = OPCODES.WRQ
         self.name: str = name
@@ -105,14 +110,14 @@ class WriteRequestPacket(Packet):
             + END.to_bytes(1, ENDIAN)
         )
 
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         if not isinstance(other, AckFPacket):
             return False
 
         return other.block == 0
 
 
-class ReadRequestPacket(Packet):
+class ReadRequestPacket(TransportPacket):
     def __init__(self, name):
         self.opcode: int = OPCODES.RRQ
         self.name: str = name
@@ -130,14 +135,14 @@ class ReadRequestPacket(Packet):
             + END.to_bytes(1, ENDIAN)
         )
 
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         if not isinstance(other, AckFPacket):
             return False
 
         return other.block == 0
 
 
-class DataFPacket(Packet):
+class DataFPacket(TransportPacket):
     def __init__(self, block: int, data: bytes):
         self.opcode: int = OPCODES.DATA
         self.block = block
@@ -150,8 +155,8 @@ class DataFPacket(Packet):
         return cls(block, data)
 
     @classmethod
-    def decode_as_data(cls, stream: bytes) -> 'DataFPacket':
-        packet = Packet.decode(stream)
+    def decode_as_data(cls, stream: bytes) -> "DataFPacket":
+        packet = TransportPacket.decode(stream)
         if not isinstance(packet, DataFPacket):
             raise InvalidPacket()
         return packet
@@ -163,11 +168,11 @@ class DataFPacket(Packet):
             + self.data
         )
 
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         return isinstance(other, AckFPacket) and other.block == self.block
 
 
-class AckFPacket(Packet):
+class AckFPacket(TransportPacket):
     def __init__(self, block_number: int):
         self.opcode: int = OPCODES.ACK
         self.block: int = block_number
@@ -181,13 +186,13 @@ class AckFPacket(Packet):
     def encode(self) -> bytes:
         return self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN)
 
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         # Esto va a haber que checkearlo, por que el block
         # se puede dar vuelta (volver a 1)
         return isinstance(other, DataFPacket) and other.block == self.block + 1
 
 
-class ErrorPacket(Packet):
+class ErrorPacket(TransportPacket):
     def __init__(self, error_code: int):
         self.opcode: int = OPCODES.ERROR
         self.error_code: int = error_code
@@ -198,37 +203,33 @@ class ErrorPacket(Packet):
         return cls(error_code)
 
     def encode(self) -> bytes:
-        return self.opcode.to_bytes(2, ENDIAN) \
-                + self.error_code.to_bytes(2, ENDIAN)
+        return (self.opcode.to_bytes(2, ENDIAN)
+                + self.error_code.to_bytes(2, ENDIAN))
 
-    def is_expected_answer(self, other: "Packet") -> bool:
+    def is_expected_answer(self, other: "TransportPacket") -> bool:
         # Devuelve False, no encontre que tenga un ACK, pero deberia
         # La RFC marca que funciona como ACK para cualquier tipo de paquete.
         return False
-    
+
     @classmethod
-    def from_exception(cls, exception: Exception) -> 'ErrorPacket':
-        if isinstance(exception, UnorderedPacket):
-            return cls(ERRORCODES.UNORDERED)
-        
+    def from_exception(cls, exception: Exception) -> "ErrorPacket":
+
         if isinstance(exception, FileExists):
             return cls(ERRORCODES.FILEEXISTS)
-        
+
         if isinstance(exception, FilenNotExists):
             return cls(ERRORCODES.FILENOTEXISTS)
-        
+
         if isinstance(exception, FailedHandshake):
             return cls(ERRORCODES.FAILEDHANDSHAKE)
-        
+
         if isinstance(exception, InvalidPacket):
             return cls(ERRORCODES.INVALIDPACKET)
-        
+
         return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:
         match self.error_code:
-            case ERRORCODES.UNORDERED:
-                return UnorderedPacket()
             case ERRORCODES.FILEEXISTS:
                 return FileExists()
             case ERRORCODES.FILENOTEXISTS:
@@ -238,4 +239,4 @@ class ErrorPacket(Packet):
             case ERRORCODES.INVALIDPACKET:
                 return InvalidPacket()
             case _:
-                return Exception()
+                return Exception("Some unknown error occured")
