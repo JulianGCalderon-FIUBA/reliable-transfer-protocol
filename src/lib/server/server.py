@@ -9,9 +9,7 @@ from lib.transport.transport import ReliableTransportServer
 
 
 class Server:
-    def __init__(
-            self, address: Address, root_directory: str
-            ):
+    def __init__(self, address: Address, root_directory: str):
         self.socket = ReliableTransportServer(address)
         self.request_handler = Handler(root_directory)
         self.address = address

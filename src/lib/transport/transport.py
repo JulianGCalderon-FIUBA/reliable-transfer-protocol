@@ -104,10 +104,7 @@ class ReliableTransportProtocol:
         Devuelve True si hay algun paquete sin confirmar."""
 
         return any(
-            map(
-                lambda stream: stream.has_unacked_packets(),
-                self.streams.values()
-            )
+            map(lambda stream: stream.has_unacked_packets(), self.streams.values())
         )
 
     def close(self):

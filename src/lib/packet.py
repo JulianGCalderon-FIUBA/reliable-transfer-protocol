@@ -163,9 +163,7 @@ class DataFPacket(TransportPacket):
 
     def encode(self) -> bytes:
         return (
-            self.opcode.to_bytes(2, ENDIAN)
-            + self.block.to_bytes(2, ENDIAN)
-            + self.data
+            self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN) + self.data
         )
 
     def is_expected_answer(self, other: "TransportPacket") -> bool:
@@ -203,8 +201,7 @@ class ErrorPacket(TransportPacket):
         return cls(error_code)
 
     def encode(self) -> bytes:
-        return (self.opcode.to_bytes(2, ENDIAN)
-                + self.error_code.to_bytes(2, ENDIAN))
+        return self.opcode.to_bytes(2, ENDIAN) + self.error_code.to_bytes(2, ENDIAN)
 
     def is_expected_answer(self, other: "TransportPacket") -> bool:
         # Devuelve False, no encontre que tenga un ACK, pero deberia
@@ -213,7 +210,6 @@ class ErrorPacket(TransportPacket):
 
     @classmethod
     def from_exception(cls, exception: Exception) -> "ErrorPacket":
-
         if isinstance(exception, FileExists):
             return cls(ERRORCODES.FILEEXISTS)
 

@@ -10,7 +10,6 @@ from abc import ABC, abstractmethod
 
 
 class Worker(ABC):
-
     def __init__(self, target_address: Address):
         self.socket = ReliableTransportClient(target_address)
         self.target = target_address
@@ -20,8 +19,7 @@ class Worker(ABC):
         pass
 
     def on_worker_exception(self, target_address, exception):
-        quiet_log("Error occured while fullfilling request: "
-                  + exception.__str__())
+        quiet_log("Error occured while fullfilling request: " + exception.__str__())
 
         error_packet = ErrorPacket.from_exception(Exception()).encode()
         self.socket.send_to(error_packet, target_address)

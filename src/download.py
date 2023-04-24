@@ -16,18 +16,26 @@ def start_parser() -> "ArgumentParser":
     )
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", help="increase output verbosity",
-                       default=False, action='store_true')
-    group.add_argument("-q", "--quiet", help="decrease output verbosity",
-                       default=False, action='store_true')
+    group.add_argument(
+        "-v",
+        "--verbose",
+        help="increase output verbosity",
+        default=False,
+        action="store_true",
+    )
+    group.add_argument(
+        "-q",
+        "--quiet",
+        help="decrease output verbosity",
+        default=False,
+        action="store_true",
+    )
 
     parser.add_argument(
         "-H", "--host", type=str, help="server IP address", required=True
     )
-    parser.add_argument("-p", "--port", type=int,
-                        help="server port", required=True)
-    parser.add_argument("-d", "--dst",
-                        help="destination file path", required=True)
+    parser.add_argument("-p", "--port", type=int, help="server port", required=True)
+    parser.add_argument("-d", "--dst", help="destination file path", required=True)
     parser.add_argument("-n", "--name", help="file name", required=True)
 
     return parser
