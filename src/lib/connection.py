@@ -3,6 +3,7 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 """
 
 from abc import ABC
+from io import BufferedReader
 from lib.constants import DATASIZE
 from lib.segmentation import Segmenter
 from lib.packet import (
@@ -15,9 +16,9 @@ from lib.transport.transport import (
 
 
 class ConnectionRFTP(ABC):
-    def __init__(self, socket: ReliableTransportClient, file_path: str):
+    def __init__(self, socket: ReliableTransportClient):
         self.socket = socket
-        self.segmenter = Segmenter(file_path)
+        self.segmenter = Segmenter()
 
     def close(self):
         """
@@ -26,19 +27,18 @@ class ConnectionRFTP(ABC):
 
         pass
 
-    def send_file(self):
+    def send_file(self, data: BufferedReader):
         """
         Envia los datos definidos en data a traves de la conexion
         """
 
-        self.segmenter.segment()
+        self.segmenter.segment(data)
         for packet in self.segmenter:
             self.socket.send(packet.encode())
 
     def recieve_file(self):
         packet = self.socket.recv()
 
-        self.segmenter.desegment()
         packet = DataFPacket.decode_as_data(packet)
 
         self.segmenter.add_segment(packet)
@@ -49,3 +49,5 @@ class ConnectionRFTP(ABC):
             packet = DataFPacket.decode_as_data(packet)
 
             self.segmenter.add_segment(packet)
+
+        return self.segmenter.desegment()
