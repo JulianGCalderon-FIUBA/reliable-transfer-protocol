@@ -1,6 +1,6 @@
 from queue import Queue
 from socket import socket
-from threading import Semaphore, Timer
+from threading import Semaphore, Timer, Lock
 from typing import Dict
 from lib.transport.consts import DROP_THRESHOLD, TIMER, WINDOW_SIZE, Address
 
@@ -67,6 +67,7 @@ class ReliableStream:
         self.consecutive_interrupts = 0
         self.closing = False
 
+        self.socket_lock = Lock()
         self.socket = socket
         self.target = target
         self.recv_queue = recv_queue
@@ -144,7 +145,9 @@ class ReliableStream:
         """
         Envia el Packet especificado al destinatario especificado."""
 
+        self.socket_lock.acquire()
         self.socket.sendto(packet.encode(), self.target)
+        self.socket_lock.release()
 
     def _send_ack(self, sequence: int):
         """

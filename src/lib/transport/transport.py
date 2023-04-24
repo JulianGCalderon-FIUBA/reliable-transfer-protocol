@@ -92,7 +92,9 @@ class ReliableTransportProtocol:
 
         return self.streams.setdefault(
             address,
-            ReliableStream(self.socket, address, self.recv_queue, self.window_size),
+            ReliableStream(
+                self.socket.dup(), address, self.recv_queue, self.window_size
+            ),
         )
 
     def bind(self, address: Address):
