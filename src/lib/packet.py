@@ -147,18 +147,15 @@ class DataFPacket(TransportPacket):
 
 
 class AckFPacket(TransportPacket):
-    def __init__(self, block_number: int):
+    def __init__(self):
         self.opcode: int = OPCODES.ACK
-        self.block: int = block_number
 
     @classmethod
-    def decode(cls, stream: bytes) -> "AckFPacket":
-        block_number = int.from_bytes(stream, ENDIAN)
-
-        return cls(block_number)
+    def decode(cls, _: bytes) -> "AckFPacket":
+        return cls()
 
     def encode(self) -> bytes:
-        return self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN)
+        return self.opcode.to_bytes(2, ENDIAN)
 
 
 class ErrorPacket(TransportPacket):

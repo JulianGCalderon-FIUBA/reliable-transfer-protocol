@@ -46,7 +46,7 @@ class WriteWorker(Worker):
 
     def run(self):
         try:
-            self.socket.send_to(AckFPacket(0).encode(), self.target)
+            self.socket.send_to(AckFPacket().encode(), self.target)
             normal_log(f"Receiving file from: {self.target}")
 
             file = self.connection.recieve_file()
@@ -70,7 +70,7 @@ class ReadWorker(Worker):
     def run(self):
         try:
             verbose_log(f"Sending file {self.file_path} to {self.target}")
-            self.socket.send(AckFPacket(0).encode())
+            self.socket.send(AckFPacket().encode())
 
             self.connection.send_file(self.file_bytes)
             verbose_log(f"File sent to {self.target}")
