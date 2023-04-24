@@ -13,7 +13,7 @@ Define la interfaz para la implementación de cada tipo de paquete
 """
 
 
-class TransportPacket(ABC):
+class Packet(ABC):
     """
     Crea cada tipo de paquete particular manualmente
     a partir de los campos especificos
@@ -37,7 +37,7 @@ class TransportPacket(ABC):
     """
 
     @classmethod
-    def decode(cls, stream: bytes) -> "TransportPacket":
+    def decode(cls, stream: bytes) -> "Packet":
         opcode = int.from_bytes(stream[:2], ENDIAN)
         stream = stream[2:]
 
@@ -51,7 +51,7 @@ Lanza una excepción si el opcode es invalido
 """
 
 
-def class_for_opcode(opcode: int) -> type[TransportPacket]:
+def class_for_opcode(opcode: int) -> type[Packet]:
     if opcode == OPCODES.RRQ:
         return ReadRequestPacket
     if opcode == OPCODES.WRQ:
@@ -81,7 +81,7 @@ def read_field(stream: bytes) -> tuple[bytes, int]:
     return stream, len(stream)
 
 
-class WriteRequestPacket(TransportPacket):
+class WriteRequestPacket(Packet):
     def __init__(self, name):
         self.opcode: int = OPCODES.WRQ
         self.name: str = name
@@ -100,7 +100,7 @@ class WriteRequestPacket(TransportPacket):
         )
 
 
-class ReadRequestPacket(TransportPacket):
+class ReadRequestPacket(Packet):
     def __init__(self, name):
         self.opcode: int = OPCODES.RRQ
         self.name: str = name
@@ -119,7 +119,7 @@ class ReadRequestPacket(TransportPacket):
         )
 
 
-class DataFPacket(TransportPacket):
+class DataFPacket(Packet):
     def __init__(self, length: int, data: bytes):
         self.opcode: int = OPCODES.DATA
         self.length = length
@@ -133,7 +133,7 @@ class DataFPacket(TransportPacket):
 
     @classmethod
     def decode_as_data(cls, stream: bytes) -> "DataFPacket":
-        packet = TransportPacket.decode(stream)
+        packet = Packet.decode(stream)
         if not isinstance(packet, DataFPacket):
             raise InvalidPacket()
         return packet
@@ -146,7 +146,7 @@ class DataFPacket(TransportPacket):
         )
 
 
-class AckFPacket(TransportPacket):
+class AckFPacket(Packet):
     def __init__(self):
         self.opcode: int = OPCODES.ACK
 
@@ -158,7 +158,7 @@ class AckFPacket(TransportPacket):
         return self.opcode.to_bytes(2, ENDIAN)
 
 
-class ErrorPacket(TransportPacket):
+class ErrorPacket(Packet):
     def __init__(self, error_code: int):
         self.opcode: int = OPCODES.ERROR
         self.error_code: int = error_code

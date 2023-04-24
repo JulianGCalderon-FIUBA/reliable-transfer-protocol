@@ -8,7 +8,7 @@ from lib.packet import (
     ErrorPacket,
     WriteRequestPacket,
     ReadRequestPacket,
-    TransportPacket,
+    Packet,
 )
 
 
@@ -75,10 +75,11 @@ class Client:
         an exception is raised."""
 
         answer, address = self._recv_answer()
-        answer = TransportPacket.decode(answer)
+        answer = Packet.decode(answer)
         if isinstance(answer, AckFPacket):
             verbose_log("Received AckFPacket from server")
             self.socket.set_target(address)
+            return
 
         self.socket.close()
 
