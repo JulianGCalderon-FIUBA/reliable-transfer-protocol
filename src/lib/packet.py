@@ -43,15 +43,6 @@ class TransportPacket(ABC):
 
         return class_for_opcode(opcode).decode(stream)
 
-    """
-    Devuelve true si la respuesta es la esperada para el paquete.
-    Si no devuelve False
-    """
-
-    @abstractmethod
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        pass
-
 
 """
 Devuelve el tipo de paquete (subclase) a partir del opcode
@@ -61,7 +52,6 @@ Lanza una excepción si el opcode es invalido
 
 
 def class_for_opcode(opcode: int) -> type[TransportPacket]:
-
     if opcode == OPCODES.RRQ:
         return ReadRequestPacket
     if opcode == OPCODES.WRQ:
@@ -109,12 +99,6 @@ class WriteRequestPacket(TransportPacket):
             + END.to_bytes(1, ENDIAN)
         )
 
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        if not isinstance(other, AckFPacket):
-            return False
-
-        return other.block == 0
-
 
 class ReadRequestPacket(TransportPacket):
     def __init__(self, name):
@@ -134,17 +118,11 @@ class ReadRequestPacket(TransportPacket):
             + END.to_bytes(1, ENDIAN)
         )
 
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        if not isinstance(other, AckFPacket):
-            return False
-
-        return other.block == 0
-
 
 class DataFPacket(TransportPacket):
-    def __init__(self, block: int, data: bytes):
+    def __init__(self, length: int, data: bytes):
         self.opcode: int = OPCODES.DATA
-        self.block = block
+        self.length = length
         self.data: bytes = data
 
     @classmethod
@@ -162,11 +140,10 @@ class DataFPacket(TransportPacket):
 
     def encode(self) -> bytes:
         return (
-            self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN) + self.data
+            self.opcode.to_bytes(2, ENDIAN)
+            + self.length.to_bytes(2, ENDIAN)
+            + self.data
         )
-
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        return isinstance(other, AckFPacket) and other.block == self.block
 
 
 class AckFPacket(TransportPacket):
@@ -183,11 +160,6 @@ class AckFPacket(TransportPacket):
     def encode(self) -> bytes:
         return self.opcode.to_bytes(2, ENDIAN) + self.block.to_bytes(2, ENDIAN)
 
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        # Esto va a haber que checkearlo, por que el block
-        # se puede dar vuelta (volver a 1)
-        return isinstance(other, DataFPacket) and other.block == self.block + 1
-
 
 class ErrorPacket(TransportPacket):
     def __init__(self, error_code: int):
@@ -201,11 +173,6 @@ class ErrorPacket(TransportPacket):
 
     def encode(self) -> bytes:
         return self.opcode.to_bytes(2, ENDIAN) + self.error_code.to_bytes(2, ENDIAN)
-
-    def is_expected_answer(self, other: "TransportPacket") -> bool:
-        # Devuelve False, no encontre que tenga un ACK, pero deberia
-        # La RFC marca que funciona como ACK para cualquier tipo de paquete.
-        return False
 
     @classmethod
     def from_exception(cls, exception: Exception) -> "ErrorPacket":
@@ -224,7 +191,6 @@ class ErrorPacket(TransportPacket):
         return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:
-
         if self.error_code == ERRORCODES.FILEEXISTS:
             return FileExists()
         if self.error_code == ERRORCODES.FILENOTEXISTS:
