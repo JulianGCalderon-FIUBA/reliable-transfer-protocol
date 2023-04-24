@@ -61,20 +61,19 @@ Lanza una excepción si el opcode es invalido
 
 
 def class_for_opcode(opcode: int) -> type[TransportPacket]:
-    match opcode:
-        case OPCODES.RRQ:
-            return ReadRequestPacket
-        case OPCODES.WRQ:
-            return WriteRequestPacket
-        case OPCODES.DATA:
-            return DataFPacket
-        case OPCODES.ACK:
-            return AckFPacket
-        case OPCODES.ERROR:
-            return ErrorPacket
 
-        case _:
-            raise ValueError("invalid opcode")
+    if opcode == OPCODES.RRQ:
+        return ReadRequestPacket
+    if opcode == OPCODES.WRQ:
+        return WriteRequestPacket
+    if opcode == OPCODES.DATA:
+        return DataFPacket
+    if opcode == OPCODES.ACK:
+        return AckFPacket
+    if opcode == OPCODES.ERROR:
+        return ErrorPacket
+
+    raise ValueError("invalid opcode")
 
 
 """
@@ -229,14 +228,14 @@ class ErrorPacket(TransportPacket):
         return cls(ERRORCODES.UNKNOWN)
 
     def get_fail_reason(self) -> Exception:
-        match self.error_code:
-            case ERRORCODES.FILEEXISTS:
-                return FileExists()
-            case ERRORCODES.FILENOTEXISTS:
-                return FilenNotExists()
-            case ERRORCODES.FAILEDHANDSHAKE:
-                return FailedHandshake()
-            case ERRORCODES.INVALIDPACKET:
-                return InvalidPacket()
-            case _:
-                return Exception("Some unknown error occured")
+
+        if self.error_code == ERRORCODES.FILEEXISTS:
+            return FileExists()
+        if self.error_code == ERRORCODES.FILENOTEXISTS:
+            return FilenNotExists()
+        if self.error_code == ERRORCODES.FAILEDHANDSHAKE:
+            return FailedHandshake()
+        if self.error_code == ERRORCODES.INVALIDPACKET:
+            return InvalidPacket()
+
+        return Exception("Some unknown error occured")
