@@ -61,7 +61,7 @@ class WriteWorker(Worker):
 class ReadWorker(Worker):
     def __init__(self, target_address: Address, path_to_file: str):
         super().__init__(target_address)
-        self.file_bytes = open(path_to_file, "r").read(-1).encode()
+        self.file_bytes = open(path_to_file, "rb")
         self.connection = ConnectionRFTP(self.socket)
         self.file_path = path_to_file
 
