@@ -97,7 +97,10 @@ class ReliableStream:
         stream frene ante el cierre de la conexión por parte del
         destinatario."""
 
-        self.timers.pop(packet.sequence).cancel()
+        try:
+            self.timers.pop(packet.sequence).cancel()
+        except KeyError:
+            pass
 
         self.consecutive_interrupts += 1
         if self.consecutive_interrupts >= DROP_THRESHOLD and self.closing:
