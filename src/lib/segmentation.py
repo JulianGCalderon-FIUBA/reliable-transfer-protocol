@@ -1,36 +1,23 @@
+from typing import Generator
 from lib.constants import DATASIZE
-from lib.packet import DataFPacket, TransportPacket
+from lib.packet import DataFPacket
 
 
 class Segmenter:
-    def __init__(self):
-        self.segments = []
+    def __init__(self, file_path: str):
+        self.file_path = file_path
 
-    def segment(self, data: bytes):
-        while len(data) > 0:
-            packet_data = data[:DATASIZE]
-            packet = DataFPacket(len(packet_data), packet_data)
-            data = data[DATASIZE:]
-            self.add_segment(packet)
+    def segment(self):
+        self.file = open(self.file_path, "rb")
 
-        if len(self.segments[-1].data) == DATASIZE:
-            self.segments.append(DataFPacket(0, bytes()))
-
-    def desegment(self) -> bytes:
-        segment_bytes = bytes()
-        for segment in self.segments:
-            segment_bytes = segment_bytes + segment.data
-
-        return segment_bytes
+    def desegment(self):
+        self.file = open(self.file_path, "wb")
 
     def add_segment(self, data: DataFPacket):
-        self.segments.append(data)
+        self.file.write(data.data)
 
-    def __iter__(self):
-        return self
+    def __iter__(self) -> Generator[DataFPacket, None, None]:
+        while len((data := self.file.read(DATASIZE))) > 0:
+            yield DataFPacket(len(data), data)
 
-    def __next__(self) -> TransportPacket:
-        if len(self.segments) == 0:
-            raise StopIteration
-
-        return self.segments.pop(0)
+        self.file.close()

@@ -15,9 +15,9 @@ from lib.transport.transport import (
 
 
 class ConnectionRFTP(ABC):
-    def __init__(self, socket: ReliableTransportClient):
+    def __init__(self, socket: ReliableTransportClient, file_path: str):
         self.socket = socket
-        self.segmenter = Segmenter()
+        self.segmenter = Segmenter(file_path)
 
     def close(self):
         """
@@ -26,26 +26,26 @@ class ConnectionRFTP(ABC):
 
         pass
 
-    def send_file(self, data: bytes):
+    def send_file(self):
         """
         Envia los datos definidos en data a traves de la conexion
         """
 
-        self.segmenter.segment(data)
+        self.segmenter.segment()
         for packet in self.segmenter:
             self.socket.send(packet.encode())
 
-    def recieve_file(self) -> bytes:
+    def recieve_file(self):
         packet = self.socket.recv()
 
-        # Chequear que sea de data
+        self.segmenter.desegment()
         packet = DataFPacket.decode_as_data(packet)
+
         self.segmenter.add_segment(packet)
+
         while packet.length >= DATASIZE:
             packet = self.socket.recv()
 
             packet = DataFPacket.decode_as_data(packet)
 
             self.segmenter.add_segment(packet)
-
-        return self.segmenter.desegment()

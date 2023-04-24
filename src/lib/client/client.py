@@ -20,26 +20,21 @@ class Client:
         self.target_address = address
 
     def upload(self):
-        with open(self.local_path) as upload_file:
-            self.send_write_request()
-            normal_log(f"Uploading: {self.local_path}")
-            data = upload_file.read(-1).encode()
+        self.send_write_request()
 
-            ConnectionRFTP(self.socket).send_file(data)
-            normal_log(
-                "Finished upload of file" + f" to server at: {self.target_address}"
-            )
-            self.socket.close()
+        normal_log(f"Uploading: {self.local_path}")
+        ConnectionRFTP(self.socket, self.local_path).send_file()
+
+        normal_log("Finished upload of file" + f" to server at: {self.target_address}")
+        self.socket.close()
 
     def download(self):
-        with open(self.local_path, "bw") as download_file:
-            self.send_read_request()
-            normal_log(f"Downloading file to: {self.local_path}")
-            file_bytes = ConnectionRFTP(self.socket).recieve_file()
-            verbose_log(f"Writing to file at: {self.local_path}")
-            download_file.write(file_bytes)
-            normal_log("Finished downloading file.")
-            self.socket.close()
+        self.send_read_request()
+        normal_log(f"Downloading file to: {self.local_path}")
+        ConnectionRFTP(self.socket, self.local_path).recieve_file()
+
+        normal_log("Finished downloading file.")
+        self.socket.close()
 
     def send_write_request(self):
         verbose_log(f"Sending upload request to server at: {self.target_address}")
