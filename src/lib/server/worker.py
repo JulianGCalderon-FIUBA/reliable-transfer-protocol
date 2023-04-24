@@ -40,7 +40,6 @@ class ErrorWorker(Worker):
 class WriteWorker(Worker):
     def __init__(self, target_address: Address, path_to_file: str):
         super().__init__(target_address)
-        self.dump = open(path_to_file, "wb")
         self.connection = ConnectionRFTP(self.socket)
         self.file_path = path_to_file
 
@@ -48,11 +47,10 @@ class WriteWorker(Worker):
         try:
             self.socket.send_to(AckFPacket().encode(), self.target)
             normal_log(f"Recieving file from: {self.target}")
-            file = self.connection.recieve_file()
+            self.connection.receive_file(self.file_path)
             verbose_log(f"Writing file into: {self.file_path}")
-            self.dump.write(file)
-            self.dump.close()
-            verbose_log(f"File saved at: {self.file_path}")
+
+            normal_log(f"File saved at: {self.file_path}")
         except Exception as exception:
             self.on_worker_exception(self.target, exception)
 
@@ -60,7 +58,6 @@ class WriteWorker(Worker):
 class ReadWorker(Worker):
     def __init__(self, target_address: Address, path_to_file: str):
         super().__init__(target_address)
-        self.file_bytes = open(path_to_file, "rb")
         self.connection = ConnectionRFTP(self.socket)
         self.file_path = path_to_file
 
@@ -68,7 +65,7 @@ class ReadWorker(Worker):
         try:
             verbose_log(f"Sending file {self.file_path} to {self.target}")
             self.socket.send(AckFPacket().encode())
-            self.connection.send_file(self.file_bytes)
+            self.connection.send_file(self.file_path)
             verbose_log(f"File sent to {self.target}")
 
         except Exception as exception:

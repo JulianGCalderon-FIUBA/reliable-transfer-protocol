@@ -13,6 +13,11 @@ from lib.packet import (
 
 
 class Client:
+    """
+    Client interface for the RFTP protocol.
+
+    This class is responsible for downloading and uploading files to the server."""
+
     def __init__(self, address: Address, local_path: str, remote_path: str):
         self.socket = ReliableTransportClient(address)
         self.local_path = local_path
@@ -20,61 +25,74 @@ class Client:
         self.target_address = address
 
     def upload(self):
-        with open(self.local_path, 'br') as upload_file:
-            self.send_write_request()
-            normal_log(f"Uploading: {self.local_path}")
+        """Attempts to upload a file to the server"""
 
-            ConnectionRFTP(self.socket).send_file(upload_file)
-            normal_log(
-                "Finished upload of file"
-                + f" to server at: {self.target_address}"
-                )
-            self.socket.close()
+        self._send_write_request()
+
+        normal_log(f"Uploading file: {self.local_path}")
+        ConnectionRFTP(self.socket).send_file(self.local_path)
+        normal_log("Finished uploading")
+
+        self.socket.close()
 
     def download(self):
-        with open(self.local_path, "bw") as download_file:
-            self.send_read_request()
-            normal_log(
-                f"Downloading file to: {self.local_path}"
-            )
-            file_bytes = ConnectionRFTP(self.socket).recieve_file()
-            verbose_log(
-                f"Writing to file at: {self.local_path}"
-            )
-            download_file.write(file_bytes)
-            normal_log(
-                "Finished downloading file."
-            )
-            self.socket.close()
+        """Attempts to download a file from the server"""
 
+        self._send_read_request()
 
-    def send_write_request(self):
-        verbose_log(f"Sending upload request to server at: {self.target_address}")
+        normal_log(f"Downloading file: {self.remote_path}")
+        ConnectionRFTP(self.socket).receive_file(self.local_path)
+        normal_log("Finished downloading")
+
+        self.socket.close()
+
+    def _send_write_request(self):
+        """
+        Sends a write request to the server and waits for an answer."""
+
+        verbose_log("Sending upload request to server")
         request = WriteRequestPacket(self.remote_path).encode()
         self.socket.send(request)
-        self.expect_answer()
 
-    def send_read_request(self):
-        verbose_log(f"Sending download request to server at: {self.target_address}")
+        self._expect_answer()
+
+    def _send_read_request(self):
+        """
+        Sends a read request to the server and waits for an answer."""
+
+        verbose_log("Sending download request to server")
         request = ReadRequestPacket(self.remote_path).encode()
         self.socket.send(request)
-        self.expect_answer()
 
-    def expect_answer(self):
-        answer, address = self.recv_answer()
+        self._expect_answer()
+
+    def _expect_answer(self):
+        """
+        Waits for an answer from the server and checks. If it is valid, the
+        client will set the target address to the new address of the server.
+
+        If it is invalid,
+        an exception is raised."""
+
+        answer, address = self._recv_answer()
         answer = TransportPacket.decode(answer)
-        verbose_log(
-            f"Recovered: {answer.__class__.__name__}" + f" from server at {address}"
-        )
         if isinstance(answer, AckFPacket):
+            verbose_log("Received AckFPacket from server")
             self.socket.set_target(address)
+
+        self.socket.close()
+
+        if isinstance(answer, ErrorPacket):
+            verbose_log("Received ErrorPacket from server")
+            raise answer.get_fail_reason()
         else:
-            self.socket.close()
-            if isinstance(answer, ErrorPacket):
-                raise answer.get_fail_reason()
+            verbose_log("Received Invalid Packet from server")
             raise FailedHandshake()
 
-    def recv_answer(self):
+    def _recv_answer(self):
+        """
+        Waits for an answer from the server and returns it."""
+
         while True:
             answer, address = self.socket.recv_from()
             if address[0] == self.target_address[0]:
