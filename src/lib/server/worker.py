@@ -41,7 +41,7 @@ class ErrorWorker(Worker):
 class WriteWorker(Worker):
     def __init__(self, target_address: Address, path_to_file: str):
         super().__init__(target_address)
-        self.dump = open(path_to_file, "w")
+        self.dump = open(path_to_file, "wb")
         self.connection = ConnectionRFTP(self.socket)
         self.file_path = path_to_file
 
@@ -51,7 +51,7 @@ class WriteWorker(Worker):
             normal_log(f"Recieving file from: {self.target}")
             file = self.connection.recieve_file()
             verbose_log(f"Writing file into: {self.file_path}")
-            self.dump.write(file.decode())
+            self.dump.write(file)
             self.dump.close()
             verbose_log(f"File saved at: {self.file_path}")
         except Exception as exception:

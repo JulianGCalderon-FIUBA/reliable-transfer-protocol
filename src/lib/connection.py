@@ -26,7 +26,7 @@ class ConnectionRFTP(ABC):
 
         pass
 
-    def send_file(self, data: bytes):
+    def send_file(self, data: iter):
         """
         Envia los datos definidos en data a traves de la conexion
         """

@@ -22,12 +22,11 @@ class Client:
         self.target_address = address
 
     def upload(self):
-        with open(self.local_path) as upload_file:
+        with open(self.local_path, 'br') as upload_file:
             self.send_write_request()
             normal_log(f"Uploading: {self.local_path}")
-            data = upload_file.read(-1).encode()
 
-            ConnectionRFTP(self.socket).send_file(data)
+            ConnectionRFTP(self.socket).send_file(upload_file)
             normal_log(
                 "Finished upload of file"
                 + f" to server at: {self.target_address}"
