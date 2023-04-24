@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 from argparse import ArgumentParser
-from lib.logger import create_logger, quiet_log
+from lib.constants import WILDCARD_ADDRESS
+from lib.logger import create_logger, quiet_log, verbose_log
 
 from lib.server.server import Server
 
@@ -25,7 +26,7 @@ def start_parser() -> "ArgumentParser":
     )
 
     parser.add_argument(
-        "-H", "--host", default="0.0.0.0", type=str, help="service IP address"
+        "-H", "--host", default=WILDCARD_ADDRESS, type=str, help="service IP address"
     )
     parser.add_argument("-p", "--port", type=int, help="service port", required=True)
     parser.add_argument(
@@ -37,8 +38,10 @@ def start_parser() -> "ArgumentParser":
 
 def main(arguments):
     create_logger(arguments.verbose, arguments.quiet)
-    server = Server((arguments.host, arguments.port), arguments.storage)
+    listen_address = (arguments.host, arguments.port)
+    server = Server(listen_address, arguments.storage)
     while True:
+        verbose_log(f"Waiting for requests at: {listen_address}")
         try:
             server.accept()
         except Exception as e:

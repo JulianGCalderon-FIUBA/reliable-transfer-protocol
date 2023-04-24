@@ -3,12 +3,12 @@ from lib.logger import normal_log, verbose_log
 from lib.transport.consts import Address
 from lib.transport.transport import ReliableTransportClient
 from lib.connection import ConnectionRFTP
-from lib.packet import (
-    AckFPacket,
-    ErrorPacket,
-    WriteRequestPacket,
-    ReadRequestPacket,
-    TransportPacket,
+from lib.tftp_packet import (
+    TFTPAckPacket,
+    TFTPErrorPacket,
+    TFTPWriteRequestPacket,
+    TFTPReadRequestPacket,
+    TFTPPacket,
 )
 
 
@@ -51,7 +51,7 @@ class Client:
         Sends a write request to the server and waits for an answer."""
 
         verbose_log("Sending upload request to server")
-        request = WriteRequestPacket(self.remote_path).encode()
+        request = TFTPWriteRequestPacket(self.remote_path).encode()
         self.socket.send(request)
 
         self._expect_answer()
@@ -61,7 +61,7 @@ class Client:
         Sends a read request to the server and waits for an answer."""
 
         verbose_log("Sending download request to server")
-        request = ReadRequestPacket(self.remote_path).encode()
+        request = TFTPReadRequestPacket(self.remote_path).encode()
         self.socket.send(request)
 
         self._expect_answer()
@@ -75,14 +75,15 @@ class Client:
         an exception is raised."""
 
         answer, address = self._recv_answer()
-        answer = TransportPacket.decode(answer)
-        if isinstance(answer, AckFPacket):
+        answer = TFTPPacket.decode(answer)
+        if isinstance(answer, TFTPAckPacket):
             verbose_log("Received AckFPacket from server")
             self.socket.set_target(address)
+            return
 
         self.socket.close()
 
-        if isinstance(answer, ErrorPacket):
+        if isinstance(answer, TFTPErrorPacket):
             verbose_log("Received ErrorPacket from server")
             raise answer.get_fail_reason()
         else:

@@ -1,11 +1,11 @@
 import os
 from threading import Thread
 from lib.exceptions import FilenNotExists
-from lib.logger import normal_log
-from lib.packet import (
-    TransportPacket,
-    ReadRequestPacket,
-    WriteRequestPacket,
+from lib.logger import normal_log, verbose_log
+from lib.tftp_packet import (
+    TFTPPacket,
+    TFTPReadRequestPacket,
+    TFTPWriteRequestPacket,
 )
 from lib.server.worker import ErrorWorker, ReadWorker, WriteWorker
 from lib.transport.consts import Address
@@ -13,33 +13,42 @@ from os import path
 
 
 class Handler:
+    """
+    Handler for incoming client requests."""
+
     def __init__(self, root_directory: str):
         self.root_directory = root_directory
 
-    def handle_request(self, packet: "TransportPacket", address: Address):
-        Thread(target=self.check_request, args=[packet, address]).start()
+    def handle_request(self, packet: TFTPPacket, address: Address):
+        """
+        Handles a request from a client in a separate thread"""
+        Thread(target=self._handle_request, args=[packet, address]).start()
 
-    def check_request(self, request: TransportPacket, address: Address):
-        if isinstance(request, ReadRequestPacket):
-            return self.check_read_request(request, address)
-        elif isinstance(request, WriteRequestPacket):
-            return self.check_write_request(request, address)
+    def _handle_request(self, request: TFTPPacket, address: Address):
+        """
+        Handles a request from a client."""
 
-        normal_log("Received unknown packet type, ignoring...")
+        if isinstance(request, TFTPReadRequestPacket):
+            return self._handle_read_request(request, address)
+        elif isinstance(request, TFTPWriteRequestPacket):
+            return self._handle_write_request(request, address)
 
-    def check_write_request(self, request: WriteRequestPacket, address: Address):
-        absolute_path = self.absolute_path(request.name)
+        verbose_log("Received unknown packet type, ignoring...")
+
+    def _handle_write_request(self, request: TFTPWriteRequestPacket, address: Address):
+        """
+        Handles a write request from a client."""
+
+        absolute_path = self._absolute_path(request.name)
         normal_log(f"Recieved upload request from: {address}")
-
-        # if path.exists(absolute_path):
-        #     ErrorWorker(address, FileExists()).run()
-        #     return
 
         WriteWorker(address, absolute_path).run()
 
-    def check_read_request(self, request: ReadRequestPacket, address: Address):
-        absolute_path = self.absolute_path(request.name)
+    def _handle_read_request(self, request: TFTPReadRequestPacket, address: Address):
+        """
+        Handles a read request from a client."""
 
+        absolute_path = self._absolute_path(request.name)
         normal_log(f"Recieved download request from: {address}")
 
         if not path.exists(absolute_path):
@@ -48,5 +57,8 @@ class Handler:
 
         ReadWorker(address, absolute_path).run()
 
-    def absolute_path(self, relative_path: str) -> str:
+    def _absolute_path(self, relative_path: str) -> str:
+        """
+        Returns the absolute path of a file relative to the root directory."""
+
         return os.path.join(self.root_directory, relative_path)

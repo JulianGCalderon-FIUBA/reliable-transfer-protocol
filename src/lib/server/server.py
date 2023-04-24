@@ -1,7 +1,6 @@
 import os
-from lib.logger import verbose_log
-from lib.packet import (
-    TransportPacket,
+from lib.tftp_packet import (
+    TFTPPacket,
 )
 from lib.server.request_handler import Handler
 from lib.transport.consts import Address
@@ -9,6 +8,12 @@ from lib.transport.transport import ReliableTransportServer
 
 
 class Server:
+    """
+    Server interface for the RFTP protocol.
+
+    This class is responsible for accepting connections from clients and
+    handling their requests."""
+
     def __init__(self, address: Address, root_directory: str):
         self.socket = ReliableTransportServer(address)
         self.request_handler = Handler(root_directory)
@@ -18,10 +23,10 @@ class Server:
             os.makedirs(root_directory)
 
     def accept(self):
-        verbose_log(f"Waiting for requests at: {self.address}")
+        """
+        Accepts a connection from a client and handles its requests."""
+
         data, address = self.socket.recv_from()
 
-        packet = TransportPacket.decode(data)
-        verbose_log(f"Recovered {packet.__class__.__name__}")
-
+        packet = TFTPPacket.decode(data)
         self.request_handler.handle_request(packet, address)

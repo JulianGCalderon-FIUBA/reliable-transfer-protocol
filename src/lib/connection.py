@@ -4,9 +4,11 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 
 from abc import ABC
 from lib.constants import DATASIZE
-from lib.segmentation import Segmenter
-from lib.packet import (
-    DataFPacket,
+from lib.exceptions import InvalidPacket
+from lib.segmentation import Desegmenter, Segmenter
+from lib.tftp_packet import (
+    TFTPDataPacket,
+    TFTPPacket,
 )
 
 from lib.transport.transport import (
@@ -15,39 +17,47 @@ from lib.transport.transport import (
 
 
 class ConnectionRFTP(ABC):
+    """
+    Responible for sending and receiving files
+    using RFTP protocol
+    """
+
     def __init__(self, socket: ReliableTransportClient):
         self.socket = socket
-        self.segmenter = Segmenter()
-
-    def close(self):
-        """
-        Cierra el socket
-        """
-
-        pass
 
     def send_file(self, file_path: str):
         """
-        Envia los datos definidos en data a traves de la conexion
-        """
+        Sends a file using RFTP protocol, segmenting it
+        into smaller packets"""
 
-        self.segmenter.segment(file_path)
-        for packet in self.segmenter:
-            self.socket.send(packet.encode())
+        segmenter = Segmenter(file_path)
+        for packet in segmenter:
+            packet = TFTPDataPacket(packet).encode()
+            self.socket.send(packet)
 
     def receive_file(self, file_path: str):
-        packet = self.socket.recv()
+        """
+        Receives a file using RFTP protocol, desegmenting it
+        into a single file"""
 
-        packet = DataFPacket.decode_as_data(packet)
+        desegmenter = Desegmenter(file_path)
 
-        self.segmenter.desegment(file_path)
+        packet = self._recv_data()
+        desegmenter.add_segment(packet)
+        while len(packet) >= DATASIZE:
+            packet = self._recv_data()
+            desegmenter.add_segment(packet)
 
-        self.segmenter.add_segment(packet)
-        while packet.length >= DATASIZE:
-            packet = self.socket.recv()
+        desegmenter.close()
 
-            packet = DataFPacket.decode_as_data(packet)
+    def _recv_data(self):
+        """
+        Receives a data packet from the socket. Raises
+        an exception if the packet is not a data packet"""
 
-            self.segmenter.add_segment(packet)
+        packet = TFTPPacket.decode(self.socket.recv())
 
-        self.segmenter.close()
+        if not isinstance(packet, TFTPDataPacket):
+            raise InvalidPacket
+
+        return packet.data
