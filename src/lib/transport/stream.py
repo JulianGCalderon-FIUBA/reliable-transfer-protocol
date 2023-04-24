@@ -52,12 +52,18 @@ class ReliableStream:
     con los datos a enviar.
     """
 
-    def __init__(self, socket: socket, target: Address, recv_queue: Queue):
+    def __init__(
+        self,
+        socket: socket,
+        target: Address,
+        recv_queue: Queue,
+        window_size: int = WINDOW_SIZE,
+    ):
         self.next_seq = SequenceNumber()
         self.expected = SequenceNumber()
         self.buffer: Dict[int, bytes] = {}
         self.timers: Dict[int, Timer] = {}
-        self.window_semaphore = Semaphore(WINDOW_SIZE)
+        self.window_semaphore = Semaphore(window_size)
         self.consecutive_interrupts = 0
         self.closing = False
 

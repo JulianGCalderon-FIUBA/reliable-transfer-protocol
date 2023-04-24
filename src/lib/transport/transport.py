@@ -3,7 +3,7 @@ from queue import Queue
 import threading
 from typing import Tuple, Dict
 import socket as skt
-from lib.transport.consts import BUFSIZE, Address
+from lib.transport.consts import BUFSIZE, WINDOW_SIZE, Address
 from lib.transport.exceptions import SendingNoneData, InvalidAddress
 
 from lib.transport.stream import ReliableStream
@@ -28,9 +28,10 @@ class ReliableTransportProtocol:
     explicitamente el destinatario de cada paquete. Ademas, cada paquete
     recibido incluye la direccion del emisor."""
 
-    def __init__(self):
+    def __init__(self, window_size: int = WINDOW_SIZE):
         self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
         self.socket.settimeout(1)
+        self.window_size = window_size
 
         self.recv_queue = Queue()
         self.streams: Dict[Address, ReliableStream] = {}
@@ -90,7 +91,8 @@ class ReliableTransportProtocol:
         """
 
         return self.streams.setdefault(
-            address, ReliableStream(self.socket, address, self.recv_queue)
+            address,
+            ReliableStream(self.socket, address, self.recv_queue, self.window_size),
         )
 
     def bind(self, address: Address):
