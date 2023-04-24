@@ -2,10 +2,10 @@ import os
 from threading import Thread
 from lib.exceptions import FilenNotExists
 from lib.logger import normal_log, verbose_log
-from lib.packet import (
-    Packet,
-    ReadRequestPacket,
-    WriteRequestPacket,
+from lib.tftp_packet import (
+    TFTPPacket,
+    TFTPReadRequestPacket,
+    TFTPWriteRequestPacket,
 )
 from lib.server.worker import ErrorWorker, ReadWorker, WriteWorker
 from lib.transport.consts import Address
@@ -19,23 +19,23 @@ class Handler:
     def __init__(self, root_directory: str):
         self.root_directory = root_directory
 
-    def handle_request(self, packet: Packet, address: Address):
+    def handle_request(self, packet: TFTPPacket, address: Address):
         """
         Handles a request from a client in a separate thread"""
         Thread(target=self._handle_request, args=[packet, address]).start()
 
-    def _handle_request(self, request: Packet, address: Address):
+    def _handle_request(self, request: TFTPPacket, address: Address):
         """
         Handles a request from a client."""
 
-        if isinstance(request, ReadRequestPacket):
+        if isinstance(request, TFTPReadRequestPacket):
             return self._handle_read_request(request, address)
-        elif isinstance(request, WriteRequestPacket):
+        elif isinstance(request, TFTPWriteRequestPacket):
             return self._handle_write_request(request, address)
 
         verbose_log("Received unknown packet type, ignoring...")
 
-    def _handle_write_request(self, request: WriteRequestPacket, address: Address):
+    def _handle_write_request(self, request: TFTPWriteRequestPacket, address: Address):
         """
         Handles a write request from a client."""
 
@@ -44,7 +44,7 @@ class Handler:
 
         WriteWorker(address, absolute_path).run()
 
-    def _handle_read_request(self, request: ReadRequestPacket, address: Address):
+    def _handle_read_request(self, request: TFTPReadRequestPacket, address: Address):
         """
         Handles a read request from a client."""
 

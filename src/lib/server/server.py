@@ -1,6 +1,6 @@
 import os
-from lib.packet import (
-    Packet,
+from lib.tftp_packet import (
+    TFTPPacket,
 )
 from lib.server.request_handler import Handler
 from lib.transport.consts import Address
@@ -28,5 +28,5 @@ class Server:
 
         data, address = self.socket.recv_from()
 
-        packet = Packet.decode(data)
+        packet = TFTPPacket.decode(data)
         self.request_handler.handle_request(packet, address)

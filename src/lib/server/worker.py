@@ -1,8 +1,8 @@
 from lib.connection import ConnectionRFTP
 from lib.logger import normal_log, quiet_log, verbose_log
-from lib.packet import (
-    ErrorPacket,
-    AckFPacket,
+from lib.tftp_packet import (
+    TFTPErrorPacket,
+    TFTPAckPacket,
 )
 from lib.transport.consts import Address
 from lib.transport.transport import ReliableTransportClient
@@ -32,7 +32,7 @@ class Worker(ABC):
 
         quiet_log("Error occured while fullfilling request: " + exception.__str__())
 
-        error_packet = ErrorPacket.from_exception(Exception()).encode()
+        error_packet = TFTPErrorPacket.from_exception(Exception()).encode()
         self.socket.send_to(error_packet, target_address)
 
 
@@ -43,7 +43,7 @@ class ErrorWorker(Worker):
     def __init__(self, target_address: Address, error: Exception) -> None:
         super().__init__(target_address)
 
-        self.error = ErrorPacket.from_exception(error).encode()
+        self.error = TFTPErrorPacket.from_exception(error).encode()
         verbose_log(f"Sending {error.__class__.__name__} to {target_address}")
 
     def run(self):
@@ -62,7 +62,7 @@ class WriteWorker(Worker):
 
     def run(self):
         try:
-            self.socket.send_to(AckFPacket().encode(), self.target)
+            self.socket.send_to(TFTPAckPacket().encode(), self.target)
 
             normal_log(f"Recieving file {self.file_path} from {self.target}")
             self.connection.receive_file(self.file_path)
@@ -82,7 +82,7 @@ class ReadWorker(Worker):
 
     def run(self):
         try:
-            self.socket.send(AckFPacket().encode())
+            self.socket.send(TFTPAckPacket().encode())
 
             normal_log(f"Sending file {self.file_path} to {self.target}")
             self.connection.send_file(self.file_path)

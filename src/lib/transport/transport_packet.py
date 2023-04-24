@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import IntEnum, auto
 
 from lib.transport.exceptions import InvalidPacketException
@@ -31,16 +31,16 @@ class TransportPacket(ABC):
         data = data[2:]
 
         for subclass in cls.__subclasses__():
-            if subclass._opcode() == opcode:  # type: ignore
+            if subclass._opcode() == opcode:
                 return subclass.decode(data)
 
         raise InvalidPacketException()
 
-    @abstractmethod
+    @classmethod
     def _opcode(cls) -> int:
         """
         Codigo de operacion del paquete."""
-        pass
+        return 0
 
     def encode(self) -> bytes:
         """
@@ -49,6 +49,7 @@ class TransportPacket(ABC):
         y luego los headers especificos para cada subclase.
         La implementación base unicamente codifica el codigo de
         operacion"""
+
         return self._opcode().to_bytes(2, ENDIAN)
 
 
