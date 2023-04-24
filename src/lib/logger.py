@@ -1,6 +1,5 @@
 import logging
 
-
 QUIET = logging.WARNING
 NORMAL = logging.INFO
 VERBOSE = logging.DEBUG
@@ -16,9 +15,10 @@ def create_logger(verbose: bool, quiet: bool):
         level = QUIET
 
     ch = logging.StreamHandler()
-    logger.addHandler(ch)
     ch.setLevel(level)
     ch.setFormatter(logging.Formatter(">> %(message)s"))
+    ch.createLock()
+    logger.addHandler(ch)
 
 
 def verbose_log(message: str):

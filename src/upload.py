@@ -51,7 +51,7 @@ def main(arguments):
     try:
         Client(address, local_path, remote_path).upload()
     except Exception as e:
-        quiet_log("Error: " + e.__str__())
+        quiet_log(">> Error: " + e.__str__())
 
 
 if __name__ == "__main__":

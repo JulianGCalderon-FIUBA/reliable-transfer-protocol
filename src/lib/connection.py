@@ -41,7 +41,7 @@ class ConnectionRFTP(ABC):
         # Chequear que sea de data
         packet = DataFPacket.decode_as_data(packet)
         self.segmenter.add_segment(packet)
-        while len(packet.encode()) >= DATASIZE:
+        while packet.block >= DATASIZE:
             packet = self.socket.recv()
 
             packet = DataFPacket.decode_as_data(packet)
