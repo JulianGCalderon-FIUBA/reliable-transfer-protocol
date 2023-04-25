@@ -14,8 +14,8 @@ def start_parser() -> "ArgumentParser":
     parser = ArgumentParser(
         prog="Upload parser",
         description="Allows to parse upload flags received by command line",
-        usage=" upload [ - h ] [ - v | -q ] [ - H ADDR ] "
-        + "[ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]",
+        usage=" upload [ -h ] [ -v | -q ] [ -H ADDR ] "
+        + "[ -p PORT ] [ -s FILEPATH ] [ -n FILENAME ]",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
