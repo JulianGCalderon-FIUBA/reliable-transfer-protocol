@@ -1,6 +1,8 @@
 import types
 
-LOCALHOST = "127.0.0.1"
+from lib.transport.consts import BUFSIZE
+
+LOCALHOST = "0.0.0.0"
 DEFAULT_STORAGE = "storage/"
 
 ERRORCODES = types.SimpleNamespace()
@@ -12,6 +14,7 @@ ERRORCODES.FAILEDHANDSHAKE = 5
 ERRORCODES.UNKNOWN = 0
 
 END = b"\0"
-
 ENDIAN = "big"
-DATASIZE = 4000
+
+# BUFSIZE - HEADERS
+DATASIZE = BUFSIZE - 6 - 3

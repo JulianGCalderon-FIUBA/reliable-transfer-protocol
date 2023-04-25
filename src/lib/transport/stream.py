@@ -95,11 +95,12 @@ class ReliableStream:
         try:
             self.timers.pop(packet.sequence).cancel()
         except KeyError:
-            pass
+            return
+
 
         self.consecutive_interrupts += 1
         if self.consecutive_interrupts >= DROP_THRESHOLD and self.closing:
-            return
+            raise ConnectionError("Connection closed by user")
 
         self._send_data_packet(packet)
 
@@ -165,6 +166,7 @@ class ReliableStream:
 
         if packet.length != len(packet.data):
             return
+
 
         self._send_ack(packet.sequence)
 

@@ -22,11 +22,13 @@ class Server:
         if not os.path.exists(root_directory):
             os.makedirs(root_directory)
 
+
     def accept(self):
         """
         Accepts a connection from a client and handles its requests."""
 
         data, address = self.socket.recv_from()
+
 
         packet = TFTPPacket.decode(data)
         self.request_handler.handle_request(packet, address)

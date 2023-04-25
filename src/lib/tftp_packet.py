@@ -13,18 +13,18 @@ from lib.exceptions import (
 class _CODES(IntEnum):
     RRQ = auto()
     """
-    |2 bytes |string   |1 byte |
-    |Opcode  |Filename |0      |
+    |2 bytes |n bytes   |1 byte |
+    |Opcode  |Filename  |0      |
     """
     WRQ = auto()
     """
-    |2 bytes |string   |1 byte |
-    |Opcode  |Filename |0      |
+    |2 bytes |n bytes   |1 byte |
+    |Opcode  |Filename  |0      |
     """
     DATA = auto()
     """
-    |2 bytes | 0-512 bytes |
-    |Opcode  | Data        |
+    |2 bytes | 1 byte   | 0-DATASIZE bytes |
+    |Opcode  | Fin      | Data             |
     """
     ACK = auto()
     """
