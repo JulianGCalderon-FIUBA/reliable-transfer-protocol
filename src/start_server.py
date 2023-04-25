@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 from argparse import ArgumentParser
-from lib.constants import WILDCARD_ADDRESS
+from lib.constants import LOCALHOST
 from lib.logger import create_logger, quiet_log, verbose_log
 
 from lib.server.server import Server
 
-LOCALHOST = "127.0.0.1"
 SERVER_BUFF_SIZE = 512
 
 
@@ -26,7 +25,7 @@ def start_parser() -> "ArgumentParser":
     )
 
     parser.add_argument(
-        "-H", "--host", default=WILDCARD_ADDRESS, type=str, help="service IP address"
+        "-H", "--host", default=LOCALHOST, type=str, help="service IP address"
     )
     parser.add_argument("-p", "--port", type=int, help="service port", required=True)
     parser.add_argument(

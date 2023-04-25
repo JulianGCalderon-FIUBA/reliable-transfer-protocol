@@ -1,6 +1,6 @@
 import types
 
-WILDCARD_ADDRESS = "0.0.0.0"
+LOCALHOST = "127.0.0.1"
 
 ERRORCODES = types.SimpleNamespace()
 ERRORCODES.UNORDERED = 1
