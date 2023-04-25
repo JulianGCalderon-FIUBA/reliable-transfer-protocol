@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from argparse import ArgumentParser
 from lib.client.client import Client
 from lib.logger import create_logger, quiet_log
@@ -11,8 +12,8 @@ def start_parser() -> "ArgumentParser":
     parser = ArgumentParser(
         prog="Download parser",
         description="Allows to parse download flags received by command line",
-        usage="download [ - h ] [ - v | -q ] [ - H ADDR ] "
-        + "[ - p PORT ] [ - d FILEPATH ] [ - n FILENAME ]",
+        usage="download [ -h ] [ -v | -q ] [ -H ADDR ] "
+        + "[ -p PORT ] [ -d FILEPATH ] [ -n FILENAME ]",
     )
 
     group = parser.add_mutually_exclusive_group()
