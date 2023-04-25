@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from argparse import ArgumentParser
-from lib.constants import LOCALHOST
+from lib.constants import LOCALHOST, DEFAULT_STORAGE
 from lib.logger import create_logger, quiet_log, verbose_log
 
 from lib.server.server import Server
@@ -29,7 +29,7 @@ def start_parser() -> "ArgumentParser":
     )
     parser.add_argument("-p", "--port", type=int, help="service port", required=True)
     parser.add_argument(
-        "-s", "--storage", default="storage/", type=str, help="storage dir path"
+        "-s", "--storage", default=DEFAULT_STORAGE, type=str, help="storage dir path"
     )
 
     return parser
