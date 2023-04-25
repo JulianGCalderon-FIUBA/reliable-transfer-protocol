@@ -27,6 +27,7 @@ class Client:
     def upload(self):
         """Attempts to upload a file to the server"""
 
+
         self._send_write_request()
 
         normal_log(f"Uploading file: {self.local_path}")
@@ -81,6 +82,7 @@ class Client:
             self.socket.set_target(address)
             return
 
+
         self.socket.close()
 
         if isinstance(answer, TFTPErrorPacket):
@@ -93,6 +95,7 @@ class Client:
     def _recv_answer(self):
         """
         Waits for an answer from the server and returns it."""
+
 
         while True:
             answer, address = self.socket.recv_from()

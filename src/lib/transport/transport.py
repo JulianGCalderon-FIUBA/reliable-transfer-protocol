@@ -21,12 +21,12 @@ class ReliableTransportProtocol:
 
     def __init__(self, window_size: int = WINDOW_SIZE):
         self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
-        self.socket.settimeout(1)
         self.window_size = window_size
 
         self.recv_queue = Queue()
         self.streams: Dict[Address, ReliableStream] = {}
         self.online = True
+
 
         self._spawn_reader()
 
@@ -47,6 +47,7 @@ class ReliableTransportProtocol:
         if target[0] is None or target[1] is None:
             raise InvalidAddress()
 
+
         self._stream_for_address(target).send(data)
 
     def _spawn_reader(self):
@@ -63,6 +64,7 @@ class ReliableTransportProtocol:
         Reads continuously from the socket and processes the received"""
 
         socket = self.socket.dup()
+        socket.settimeout(1)
         while self.online or self._has_unacked_packets():
             try:
                 data, address = socket.recvfrom(BUFSIZE)
@@ -176,4 +178,5 @@ class ReliableTransportServer(ReliableTransportProtocol):
             raise InvalidAddress()
 
         super().__init__()
+
         self.bind(address)
