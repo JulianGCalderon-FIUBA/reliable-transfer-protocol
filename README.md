@@ -88,3 +88,36 @@ $ python3 download.py -H 127.0.0.1 -p 7000 -d test.txt -n test.txt
 >> Finished downloading
 ```
  
+## Logging
+
+Each of the aforementioned files has three logging levels that determine the information displayed during execution. These are:
+
+NORMAL: Executed by default, it displays the execution status (start of download, file sending, file receiving).
+QUIET: In this case, only error messages will be displayed during execution, and no other messages. To use the flag -q must be added.
+VERBOSE: Increases the level of information displayed from NORMAL mode, including requests, confirmations, among others. To use it, the -v flag must be added.
+
+The three modes can be observed in the following fragments:
+
+NORMAL:
+
+```
+$ python3 download.py -H 127.0.0.1 -p 7000 -d test.txt -n test.txt
+>> Downloading file: test.txt
+>> Finished downloading
+```
+
+QUIET:
+```
+$ python3 download.py -H 127.0.0.1 -p 7000 -d test.txt -n test.txt -q
+
+
+```
+
+VERBOSE:
+```
+$ python3 download.py -H 127.0.0.1 -p 7000 -d test.txt -n test.txt -v
+>> Sending download request to server
+>> Received AckFPacket from server
+>> Downloading file: test.txt
+>> Finished downloading
+```
