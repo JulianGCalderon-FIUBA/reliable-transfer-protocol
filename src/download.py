@@ -44,8 +44,8 @@ def start_parser() -> "ArgumentParser":
 
 def main(arguments):
     address = (arguments.host, arguments.port)
-    local_path = arguments.name
-    remote_path = arguments.dst
+    local_path = arguments.dst
+    remote_path = arguments.name
     create_logger(arguments.verbose, arguments.quiet)
     try:
         Client(address, local_path, remote_path).download()
