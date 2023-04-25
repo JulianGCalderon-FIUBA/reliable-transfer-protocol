@@ -3,7 +3,6 @@ Define la interfaz para la implementacion de conexiones de distinto tipo
 """
 
 from abc import ABC
-from lib.constants import DATASIZE
 from lib.exceptions import InvalidPacket
 from lib.segmentation import Desegmenter, Segmenter
 from lib.tftp_packet import (
@@ -29,11 +28,10 @@ class ConnectionRFTP(ABC):
         """
         Sends a file using RFTP protocol, segmenting it
         into smaller packets"""
-
         segmenter = Segmenter(file_path)
+
         for packet in segmenter:
-            packet = TFTPDataPacket(packet).encode()
-            self.socket.send(packet)
+            self.socket.send(packet.encode())
 
     def receive_file(self, file_path: str):
         """
@@ -43,10 +41,10 @@ class ConnectionRFTP(ABC):
         desegmenter = Desegmenter(file_path)
 
         packet = self._recv_data()
-        desegmenter.add_segment(packet)
-        while len(packet) >= DATASIZE:
+        desegmenter.add_segment(packet.data)
+        while not packet.fin:
             packet = self._recv_data()
-            desegmenter.add_segment(packet)
+            desegmenter.add_segment(packet.data)
 
         desegmenter.close()
 
@@ -60,4 +58,4 @@ class ConnectionRFTP(ABC):
         if not isinstance(packet, TFTPDataPacket):
             raise InvalidPacket
 
-        return packet.data
+        return packet

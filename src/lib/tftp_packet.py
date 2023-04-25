@@ -107,26 +107,23 @@ class TFTPReadRequestPacket(TFTPPacket):
 
 
 class TFTPDataPacket(TFTPPacket):
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes, fin: bool = False):
+        self.fin = fin
         self.data: bytes = data
 
     @classmethod
     def decode(cls, stream: bytes):
-        return cls(stream)
+        fin = bool.from_bytes(stream[:1], ENDIAN)
+        stream = stream[1:]
+
+        return cls(stream, fin)
 
     @classmethod
     def _opcode(cls) -> int:
         return _CODES.DATA
 
-    @classmethod
-    def decode_as_data(cls, stream: bytes) -> "TFTPDataPacket":
-        packet = TFTPPacket.decode(stream)
-        if not isinstance(packet, TFTPDataPacket):
-            raise InvalidPacket()
-        return packet
-
     def encode(self) -> bytes:
-        return super().encode() + self.data
+        return super().encode() + self.fin.to_bytes(1, ENDIAN) + self.data
 
 
 class TFTPAckPacket(TFTPPacket):
