@@ -87,7 +87,20 @@ $ python3 download.py -H 127.0.0.1 -p 7000 -d test.txt -n test.txt
 >> Downloading file: test.txt
 >> Finished downloading
 ```
- 
+
+## Environment variables
+
+All operations (`start_server`, `upload` and `download`) can be executed either using Stop-And-Wait or Selective-Repeat with environment variables.
+All of the operations support the environment variable `TFTP_WINDOW_SIZE` which is used to define the amount of UDP packets that can be
+waiting for an ACK at any given time.
+
+The default behaviour is Selective-Repeat. To use Stop-And-Wait, set the environment variable to 1 (only 1 packet can be unacked at a time).
+Example on how to use Stop-And-Wait for an upload:
+
+```
+$ TFTP_WINDOW_SIZE=1 python3 upload.py -H 127.0.0.1 -p 7000 -s test.txt -n test.txt
+```
+
 ## Logging
 
 Each of the aforementioned files has three logging levels that determine the information displayed during execution. These are:
