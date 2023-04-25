@@ -1,6 +1,7 @@
 import types
 
 LOCALHOST = "127.0.0.1"
+DEFAULT_STORAGE = "storage/"
 
 ERRORCODES = types.SimpleNamespace()
 ERRORCODES.UNORDERED = 1
