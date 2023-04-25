@@ -44,6 +44,8 @@ def main(arguments):
         verbose_log(f"Waiting for requests at: {listen_address}")
         try:
             server.accept()
+        except KeyboardInterrupt:
+            exit()
         except Exception as e:
             quiet_log("Error: " + e.__str__())
 

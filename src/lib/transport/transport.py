@@ -66,6 +66,7 @@ class ReliableTransportProtocol:
         paquetes recibidos."""
 
         self.thread_handle = threading.Thread(target=self._reader)
+        self.thread_handle.daemon = True
         self.thread_handle.start()
 
     def _reader(self):
