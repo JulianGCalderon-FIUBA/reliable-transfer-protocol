@@ -10,8 +10,9 @@ ENDIAN = "big"
 
 
 class _CODES(IntEnum):
+
     """
-    Códigos de operación para distinguir los paquetes."""
+    Operation codes to distinguish packets."""
 
     ACK = auto()
     DATA = auto()
@@ -19,13 +20,13 @@ class _CODES(IntEnum):
 
 class TransportPacket(ABC):
     """
-    Clase base para los paquetes."""
+    Base class for all transport packets."""
 
     @classmethod
     def decode(cls, data: bytes) -> "TransportPacket":
         """
-        Decodifica un paquete a partir de un stream de bytes.
-        La instancia del paquete dependerá del código de operación."""
+        Decodes a packet from a byte stream. The packet instance will
+        depend on the operation code."""
 
         opcode = int.from_bytes(data[:2], ENDIAN)
         data = data[2:]
@@ -39,29 +40,27 @@ class TransportPacket(ABC):
     @classmethod
     def _opcode(cls) -> int:
         """
-        Codigo de operacion del paquete."""
+        Operation code for the packet. Must be implemented by subclasses."""
         return 0
 
     def encode(self) -> bytes:
         """
-        Codifica el paquete a un stream de bytes.
-        El stream de bytes comienza con el codigo de operacion
-        y luego los headers especificos para cada subclase.
-        La implementación base unicamente codifica el codigo de
-        operacion"""
+        Encodes the packet to a byte stream. The byte stream begins
+        with the operation code and then the headers specific to each
+        subclass. The base implementation only encodes the operation
+        code."""
 
         return self._opcode().to_bytes(2, ENDIAN)
 
 
 class TransportAckPacket(TransportPacket):
     """
-    Paquete de acknowledgment del paquete DATA."""
+    Acknowledgement packet for a data packet."""
 
     def __init__(self, sequence: int):
         """
-        Se define con un numero de secuencia.
-        Corresponde al numero de secuencia del paquete DATA
-        al que se esta respondiendo."""
+        The sequence number corresponds to the one from
+        the DATA packet being acknowledged."""
         self.sequence = sequence
 
     @classmethod
@@ -80,13 +79,13 @@ class TransportAckPacket(TransportPacket):
 
 class TransportDataPacket(TransportPacket):
     """
-    Paquete de datos."""
+    Data packet for reliable transport."""
 
     def __init__(self, sequence: int, data: bytes):
         """
-        Se define con un numero de secuencia el cual identificara el paquete,
-        y con los datos a enviar. El paquete tambien contiene la longitud de los
-        datos a enviar, para verificar que el paquete se haya enviado correctamente"""
+        The sequence number is used to identify the packet and
+        to acknowledge it. The data is the payload of the packet."""
+
         self.sequence = sequence
         self.length = len(data)
         self.data = data

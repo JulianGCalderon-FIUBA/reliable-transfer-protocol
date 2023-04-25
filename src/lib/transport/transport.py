@@ -8,25 +8,16 @@ from lib.transport.exceptions import SendingNoneData, InvalidAddress
 
 from lib.transport.stream import ReliableStream
 
-"""
-IMPORTANTE:
-- EL bufsize esta hardcodeado en 4096.
-    Se podria hacer que sea configurable, pero
-    idealmente los packets deberian poder ser segmentados en caso de que sean
-    demasiado grandes.
-- La implementación del stop and wait es un selective repeat, usando un
-    window size de 1.
-"""
-
 
 class ReliableTransportProtocol:
-    """
-    Esta clase implementa envio de datos de forma confiable y en orden
-    a traves de un socket UDP.
 
-    La implementacion es connectionless, por lo que se debe indicar
-    explicitamente el destinatario de cada paquete. Ademas, cada paquete
-    recibido incluye la direccion del emisor."""
+    """
+    This class implements reliable and ordered data transmission over
+    a UDP socket.
+
+    The implementation is connectionless, so the recipient of each
+    packet must be explicitly specified. In addition, each received
+    packet includes the address of the sender."""
 
     def __init__(self, window_size: int = WINDOW_SIZE):
         self.socket = skt.socket(skt.AF_INET, skt.SOCK_DGRAM)
@@ -41,16 +32,14 @@ class ReliableTransportProtocol:
 
     def recv_from(self) -> Tuple[bytes, Address]:
         """
-        Recibe un paquete de datos de cualquier origen. Si aun no se ha
-        recibido ningun paquete, se bloquea hasta que se reciba uno."""
+        Receives a data packet from any source. If no packets have been
+        received yet, it blocks until one is received."""
 
         return self.recv_queue.get()
 
     def send_to(self, data: bytes, target: Address):
-        """
-        Envía un paquete de datos al destinatario especificado. Si
-        aun no se ha recibido ningun paquete, se bloquea hasta que se
-        reciba uno."""
+        """Sends a data packet to the specified recipient. If no packets
+        have been received yet, it blocks until one is received."""
 
         if data is None:
             raise SendingNoneData()
@@ -62,8 +51,8 @@ class ReliableTransportProtocol:
 
     def _spawn_reader(self):
         """
-        Crea un thread que lee continuamente del socket y procesa los
-        paquetes recibidos."""
+        Creates a thread that continuously reads from the socket and
+        processes the received packets."""
 
         self.thread_handle = threading.Thread(target=self._reader)
         self.thread_handle.daemon = True
@@ -71,7 +60,7 @@ class ReliableTransportProtocol:
 
     def _reader(self):
         """
-        Lee continuamente del socket y procesa los paquetes recibidos."""
+        Reads continuously from the socket and processes the received"""
 
         socket = self.socket.dup()
         while self.online or self._has_unacked_packets():
@@ -84,12 +73,11 @@ class ReliableTransportProtocol:
 
     def _stream_for_address(self, address):
         """
-        Cada conexion especifica es manejada por un objeto ReliableStream.
-        Esta funcion devuelve el stream correspondiente a la direccion
-        especificada. Si no existe, se crea uno nuevo.
+        Each specific connection is handled by a ReliableStream object.
+        This function returns the stream corresponding to the specified
+        address. If it does not exist, a new one is created.
 
-        nota: Al no haber un handshake, es vulnerable a ataques syn flood.
-        """
+        note: Since there is no handshake, it is vulnerable to syn flood"""
 
         return self.streams.setdefault(
             address,
@@ -100,13 +88,13 @@ class ReliableTransportProtocol:
 
     def bind(self, address: Address):
         """
-        Asocia el socket a la direccion especificada."""
+        Asociates the socket to the specified address."""
 
         self.socket.bind(address)
 
     def _has_unacked_packets(self):
         """
-        Devuelve True si hay algun paquete sin confirmar."""
+        Returns True if there is any unconfirmed packet."""
 
         return any(
             map(lambda stream: stream.has_unacked_packets(), self.streams.values())
@@ -114,15 +102,15 @@ class ReliableTransportProtocol:
 
     def close(self):
         """
-        Cierra el socket, liberando los recursos asociados a el.
+        Closes the socket, releasing the resources associated with it.
 
-        Antes de cerrar el socket, espera a que se hayan confirmado todos
-        paquetes enviados. Si ocurre una gran cantidad consecutiva de timeouts
-        sin recibir ningun paquete por parte del destinatario, se asume que
-        la conexion se ha perdido y se cierra el socket. Esto evita que se
-        quede esperando indefinidamente a que se confirme un paquete que
-        nunca llegara, pero implica que los ultimos paquetes enviados pueden
-        perderse."""
+        Before closing the socket, waits for all sent packets to be
+        confirmed. If a large number of consecutive timeouts occur
+        without receiving any packets from the recipient, it is assumed
+        that the connection has been lost and the socket is closed. This
+        prevents it from waiting indefinitely for a packet that will
+        never arrive, but it means that the last sent packets may be
+        lost."""
 
         self.online = False
 
@@ -135,13 +123,14 @@ class ReliableTransportProtocol:
 
 
 class ReliableTransportClient(ReliableTransportProtocol):
-    """
-    Implementacion de ReliableTransportProtocol que simplifica el uso
-    de la clase para el caso de un cliente.
 
-    En lugar de tener que especificar el destinatario de cada paquete,
-    se puede enviar y recibir datos directamente (ignorando aquellos
-    paquetes que no provengan del destinatario especificado)."""
+    """
+    Implementation of ReliableTransportProtocol that simplifies the use
+    of the class for the case of a client.
+
+    Instead of having to specify the recipient of each packet, you can
+    send and receive data directly (ignoring those packets that do not
+    come from the specified recipient)."""
 
     def __init__(self, target: Address):
         if target[0] is None or target[1] is None:
@@ -152,15 +141,15 @@ class ReliableTransportClient(ReliableTransportProtocol):
 
     def send(self, data: bytes):
         """
-        Envía un paquete de datos al destinatario especificado."""
+        Sends a data packet to the specified recipient."""
 
         self.send_to(data, self.target)
 
     def recv(self) -> bytes:
         """
-        Recibe un paquete de datos del destinatario especificado. Si
-        aun no se ha recibido ningun paquete, se bloquea hasta que se
-        reciba uno."""
+        Receives a data packet from the specified recipient. If no
+        packets have been received yet, it blocks until one is
+        received."""
 
         data, source = self.recv_from()
         if source == self.target:
@@ -170,16 +159,17 @@ class ReliableTransportClient(ReliableTransportProtocol):
 
     def set_target(self, target: Address):
         """
-        Cambia el destinatario de los paquetes."""
+        Changes the recipient of the packets."""
 
         self.target = target
 
 
 class ReliableTransportServer(ReliableTransportProtocol):
+
     """
-    Implementacion de ReliableTransportProtocol que simplifica el uso
-    de la clase para el caso de un servidor.
-    Se bindea a una direccion especifica en construccion"""
+    Implementation of ReliableTransportProtocol that simplifies the use
+    of the protocol for server process. It binds to a specific
+    address when it is constructed."""
 
     def __init__(self, address: Address):
         if address[0] is None or address[1] is None:

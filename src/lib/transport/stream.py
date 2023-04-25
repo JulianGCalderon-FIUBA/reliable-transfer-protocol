@@ -14,11 +14,10 @@ from lib.transport.transport_packet import (
 
 
 class SequenceNumber:
+
     """
-    Los numeros de secuencia son numeros enteros de 16 bits sin signo,
-    crecientes en cada paquete enviado. Al alcanzar el valor maximo, se
-    reinicia a 0.
-    """
+    The sequence numbers are unsigned 16-bit integers, increasing in
+    each sent packet. When reaching the maximum value, it is reset to 0."""
 
     MAX_VALUE: int = SEQUENCE_BYTES**16 - 1
 
@@ -37,19 +36,16 @@ class SequenceNumber:
 
 
 class ReliableStream:
+
     """
-    Esta clase implementa envio de datos de forma confiable y en orden
-    a traves de un socket UDP con un destinatario especifico.
+    This class implements reliable and ordered data transmission over
+    a UDP socket with a specific recipient.
 
-    Debido a que el stream no lee activamente del socket, es necesario
-    llamar a recv() con los datos recibidos de la dirección de la conexión
-    para que el stream pueda procesarlos.
+    Since the stream does not actively read from the socket, it is necessary
+    to call recv() with the received data from the connection address so that
+    the stream can process it.
 
-    Cuando el stream recibe un paquete de datos correcto, este es
-    encolado en recv_queue.
-
-    Para enviar datos al otro extremo del stream, se debe llamar a send()
-    con los datos a enviar.
+    When the stream receives a correct data packet, it is queued in recv_queue.
     """
 
     def __init__(
@@ -74,9 +70,9 @@ class ReliableStream:
 
     def send(self, data: bytes):
         """
-        Envía un paquete de datos al destinatario especificado. Si
-        se alcanza el tamaño de la ventana, se bloquea hasta que se
-        reciba un acknowledgment para un paquete enviado."""
+        Sends a data packet to the specified recipient. If the window
+        size is reached, it blocks until an acknowledgment is received"""
+
         self.window_semaphore.acquire()
 
         packet = TransportDataPacket(self.next_seq._value, data)
@@ -85,17 +81,16 @@ class ReliableStream:
 
     def _send_data_packet(self, packet: TransportDataPacket):
         """
-        Envia el DataPacket especificado y comienza el timer correspondiente."""
+        Sends the specified DataPacket and starts the corresponding timer."""
 
         self._start_timer_for(packet)
         self._send_packet(packet)
 
     def _resend_data_packet(self, packet: TransportDataPacket):
         """
-        Reenvia el DataPacket especificado. Si se alcanza el umbral de
-        interrupciones consecutivas, se ignora. Esto permite que el
-        stream frene ante el cierre de la conexión por parte del
-        destinatario."""
+        Resends the specified DataPacket. If the threshold of consecutive
+        interrupts is reached, it is ignored. This allows the stream to
+        stop when the connection is closed by the user."""
 
         try:
             self.timers.pop(packet.sequence).cancel()
@@ -110,7 +105,7 @@ class ReliableStream:
 
     def _start_timer_for(self, packet: TransportDataPacket):
         """
-        Comienza el timer para reenviar el DataPacket especificado."""
+        Starts the timer to resend the specified DataPacket."""
 
         timer = Timer(TIMER, self._resend_data_packet, args=[packet])
         timer.start()
@@ -118,9 +113,9 @@ class ReliableStream:
 
     def handle_packet(self, data: bytes):
         """
-        Procesa los datos recibidos de la dirección de la conexión.
-        Este debe poder ser decodificado en un Packet, en caso contrario
-        se ignora."""
+        Processes the data received from the connection address.
+        This must be able to be decoded into a Packet, otherwise
+        it is ignored."""
 
         try:
             packet = TransportPacket.decode(data)
@@ -136,9 +131,9 @@ class ReliableStream:
 
     def _handle_ack(self, packet: TransportAckPacket):
         """
-        Se ejecuta cuando se recibe un AckPacket. Cancela el timer
-        correspondiente al paquete de datos que se ha recibido y libera
-        un espacio en la ventana."""
+        Executes when an AckPacket is received. Cancels the timer
+        corresponding to the data packet that has been received and releases
+        a space in the window."""
 
         if self.timers.get(packet.sequence):
             self.timers.pop(packet.sequence).cancel()
@@ -146,7 +141,7 @@ class ReliableStream:
 
     def _send_packet(self, packet: TransportPacket):
         """
-        Envia el Packet especificado al destinatario especificado."""
+        Sends the specified Packet to the specified recipient."""
 
         self.socket_lock.acquire()
         self.socket.sendto(packet.encode(), self.target)
@@ -154,21 +149,19 @@ class ReliableStream:
 
     def _send_ack(self, sequence: int):
         """
-        Envia un acknowledgment para el paquete con el numero de secuencia
-        especificado al destinatario."""
+        Sends an acknowledgment for the packet with the specified sequence"""
 
         self._send_packet(TransportAckPacket(sequence))
 
     def _handle_data(self, packet: TransportDataPacket):
         """
-        Se ejecuta cuando se recibe un DataPacket. Si el paquete se recibio
-        correctamente, se envia un acknowledgment. Si el paquete se recibio
-        en orden, se encola en recv_queue. Si el paquete se recibio fuera
-        de orden, se guarda en el buffer.
+        It is executed when a DataPacket is received. If the packet is received
+        correctly, an acknowledgment is sent. If the packet is received in order,
+        it is queued in recv_queue. If the packet is received out of order, it
+        is saved in the buffer.
 
-        Al encolar un paquete en recv_queue, se comprueba si hay paquetes
-        en el buffer que se pueden encolar tambien.
-        """
+        When queuing a packet in recv_queue, it is checked if there are packets
+        in the buffer that can also be queued."""
 
         if packet.length != len(packet.data):
             return
@@ -184,14 +177,13 @@ class ReliableStream:
 
     def _queue_packet(self, data: bytes):
         """
-        Encola el paquete de datos especificado en recv_queue."""
+        Queues the specified data packet in recv_queue."""
 
         self.recv_queue.put((data, self.target))
 
     def _queue_buffered(self):
         """
-        Encola todos los paquetes de datos en el buffer que se pueden
-        encolar en recv_queue."""
+        Enqueue all data packets in the buffer that can be queued in recv_queue."""
 
         while self.buffer.get(self.expected.value):
             self._queue_packet(self.buffer.pop(self.expected.value))
@@ -199,13 +191,13 @@ class ReliableStream:
 
     def has_unacked_packets(self) -> bool:
         """
-        Retorna True si hay paquetes sin acknowledgment."""
+        Returns True if there are packets without acknowledgment."""
 
         return len(self.timers) > 0
 
     def close(self):
         """
-        Prepara el cierra del stream. Esto implica cancelar timers en
-        caso de que se detecte que el destinatario ha cerrado la conexión."""
+        Prepares the stream to close. This implies canceling timers in
+        case it is detected that the recipient has closed the connection."""
 
         self.closing = True
