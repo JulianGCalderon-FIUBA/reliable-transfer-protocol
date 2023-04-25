@@ -27,7 +27,7 @@ To upload files to the server, you must run upload.py, which supports the follow
 
 ```
 $ python3 upload.py -h
-usage:  upload [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - s FILEPATH ] [ - n FILENAME ]
+usage:  upload [ -h ] [ -v | -q ] [ -H ADDR ] [ -p PORT ] [ -s FILEPATH ] [ -n FILENAME ]
 
 Allows to parse upload flags received by command line
 
@@ -63,7 +63,7 @@ If one wants to download files from the server, it is necessary to execute downl
 
 ```
 $ python3 download.py -h
-usage: download [ - h ] [ - v | -q ] [ - H ADDR ] [ - p PORT ] [ - d FILEPATH ] [ - n FILENAME ]
+usage: download [ -h ] [ -v | -q ] [ -H ADDR ] [ -p PORT ] [ -d FILEPATH ] [ -n FILENAME ]
 
 Allows to parse download flags received by command line
 
@@ -77,7 +77,7 @@ options:
   -n NAME, --name NAME  file name
  ```
  
- Where "destination file path" corresponds to the directory where the file is located on the server, and "filename" is the name under which the downloaded file will be saved.
+ Where "destination file path" corresponds to the directory where the file will be stored in the client, and "filename" is the name under which the file is stored in the server.
  
  
  For example, if one wishes to download the previously uploaded test file, the corresponding execution would be as follows:
